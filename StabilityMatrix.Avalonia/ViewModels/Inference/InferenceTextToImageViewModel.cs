@@ -114,6 +114,7 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
         StackCardViewModel.AddCards(
             ModelCardViewModel,
             SamplerCardViewModel,
+            ModelCardViewModel.ExtraNetworksStackCardViewModel,
             ModulesCardViewModel,
             SeedCardViewModel,
             BatchSizeCardViewModel
@@ -226,7 +227,8 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
             );
         }
 
-        // Prompts and loras
+        // Prompts and loras — UI LoRAs apply after <lora> tags in text, before CLIP encode
+        applyArgs.PreClipEncodeActions.Add(ModelCardViewModel.ApplyExtraNetworksStep);
         PromptCardViewModel.ApplyStep(applyArgs);
 
         ApplyModelSamplingForCurrentWorkflow(applyArgs);

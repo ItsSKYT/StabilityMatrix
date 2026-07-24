@@ -1,18 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using AsyncAwaitBestPractices;
 using Avalonia.Controls.Notifications;
 using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExifLibrary;
 using FluentAvalonia.UI.Controls;
@@ -76,6 +79,21 @@ public abstract partial class InferenceGenerationViewModelBase
     [JsonIgnore]
     public IInferenceClientManager ClientManager { get; }
 
+    /// <summary>
+    /// Pending generation jobs for this tab. Snapshots are taken at enqueue time.
+    /// </summary>
+    [JsonIgnore]
+    public ObservableCollection<InferenceQueueItem> GenerationQueue { get; } = [];
+
+    [JsonIgnore]
+    public int GenerationQueueCount => GenerationQueue.Count;
+
+    [ObservableProperty]
+    [property: JsonIgnore]
+    private bool isProcessingGenerationQueue;
+
+    private CancellationTokenSource? queueDrainCts;
+
     /// <inheritdoc />
     protected InferenceGenerationViewModelBase(
         IServiceManager<ViewModelBase> vmFactory,
@@ -97,6 +115,7 @@ public abstract partial class InferenceGenerationViewModelBase
         ImageFolderCardViewModel = AddDisposable(vmFactory.Get<ImageFolderCardViewModel>());
 
         GenerateImageCommand.WithConditionalNotificationErrorHandler(notificationService);
+        GenerationQueue.CollectionChanged += (_, _) => OnPropertyChanged(nameof(GenerationQueueCount));
     }
 
     /// <summary>
@@ -625,6 +644,7 @@ public abstract partial class InferenceGenerationViewModelBase
         try
         {
             await GenerateImageImpl(overrides, cancellationToken);
+            await DrainGenerationQueueAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -634,6 +654,284 @@ public abstract partial class InferenceGenerationViewModelBase
         {
             Logger.Debug("Image Generation Validation Error: {Message}", e.Message);
             notificationService.Show("Validation Error", e.Message, NotificationType.Error);
+        }
+    }
+
+    /// <summary>
+    /// Snapshot the current tab settings into the generation queue.
+    /// If nothing is generating, starts processing the queue immediately.
+    /// </summary>
+    [RelayCommand]
+    private async Task EnqueueGeneration(GenerateFlags options = default)
+    {
+        var item = CreateQueueItemFromCurrentState(options);
+        GenerationQueue.Add(item);
+
+        notificationService.Show(
+            Resources.Label_GenerationQueue,
+            string.Format(Resources.Label_GenerationQueuedCount, GenerationQueue.Count),
+            NotificationType.Success
+        );
+
+        if (GenerateImageCommand.IsRunning || IsProcessingGenerationQueue)
+        {
+            return;
+        }
+
+        queueDrainCts = new CancellationTokenSource();
+        try
+        {
+            await DrainGenerationQueueAsync(queueDrainCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.Debug("Queued generation canceled");
+        }
+        catch (ValidationException e)
+        {
+            notificationService.Show("Validation Error", e.Message, NotificationType.Error);
+        }
+        finally
+        {
+            queueDrainCts.Dispose();
+            queueDrainCts = null;
+        }
+    }
+
+    /// <summary>
+    /// Cancels the current generation and any queue drain started from enqueue.
+    /// </summary>
+    [RelayCommand]
+    private void CancelGenerationPipeline()
+    {
+        if (GenerateImageCancelCommand.CanExecute(null))
+        {
+            GenerateImageCancelCommand.Execute(null);
+        }
+
+        queueDrainCts?.Cancel();
+    }
+
+    [RelayCommand]
+    private async Task ShowGenerationQueue()
+    {
+        var vm = vmFactory.Get<InferenceQueueDialogViewModel>();
+        vm.Attach(this);
+        await vm.GetDialog().ShowAsync();
+    }
+
+    [RelayCommand]
+    private void RemoveQueuedGeneration(InferenceQueueItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        GenerationQueue.Remove(item);
+    }
+
+    [RelayCommand]
+    private void ClearGenerationQueue()
+    {
+        GenerationQueue.Clear();
+    }
+
+    [RelayCommand]
+    private void MoveQueuedGenerationUp(InferenceQueueItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var index = GenerationQueue.IndexOf(item);
+        if (index <= 0)
+        {
+            return;
+        }
+
+        GenerationQueue.Move(index, index - 1);
+    }
+
+    [RelayCommand]
+    private void MoveQueuedGenerationDown(InferenceQueueItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        var index = GenerationQueue.IndexOf(item);
+        if (index < 0 || index >= GenerationQueue.Count - 1)
+        {
+            return;
+        }
+
+        GenerationQueue.Move(index, index + 1);
+    }
+
+    internal InferenceQueueItem CreateQueueItemFromCurrentState(GenerateFlags options = default)
+    {
+        var project = InferenceProjectDocument.FromLoadable(this);
+        ApplySeedForQueueSnapshot(project, options);
+        TryGetPromptPreviews(project, out var prompt, out var negative);
+
+        return new InferenceQueueItem
+        {
+            Project = project,
+            Flags = options | GenerateFlags.UseCurrentSeed,
+            PromptPreview = InferenceQueueItem.MakePreview(prompt),
+            NegativePromptPreview = string.IsNullOrWhiteSpace(negative)
+                ? null
+                : InferenceQueueItem.MakePreview(negative, 80),
+        };
+    }
+
+    internal static void TryGetPromptPreviews(
+        InferenceProjectDocument project,
+        out string? prompt,
+        out string? negativePrompt
+    )
+    {
+        prompt = null;
+        negativePrompt = null;
+
+        if (project.State is null)
+        {
+            return;
+        }
+
+        if (
+            project.State.TryGetPropertyValue("Prompt", out var promptNode)
+            && promptNode is JsonObject promptObj
+        )
+        {
+            prompt = promptObj["Prompt"]?.GetValue<string>();
+            negativePrompt = promptObj["NegativePrompt"]?.GetValue<string>();
+        }
+    }
+
+    internal static void UpdateQueueItemPrompts(
+        InferenceQueueItem item,
+        string prompt,
+        string? negativePrompt
+    )
+    {
+        if (item.Project.State is null)
+        {
+            return;
+        }
+
+        item.Project.TryUpdateModel(
+            "Prompt",
+            node =>
+            {
+                var obj = node as JsonObject ?? new JsonObject();
+                obj["Prompt"] = prompt;
+                obj["NegativePrompt"] = negativePrompt ?? string.Empty;
+                return obj;
+            }
+        );
+
+        item.PromptPreview = InferenceQueueItem.MakePreview(prompt);
+        item.NegativePromptPreview = string.IsNullOrWhiteSpace(negativePrompt)
+            ? null
+            : InferenceQueueItem.MakePreview(negativePrompt, 80);
+    }
+
+    private static void ApplySeedForQueueSnapshot(InferenceProjectDocument project, GenerateFlags options)
+    {
+        if (options.HasFlag(GenerateFlags.UseCurrentSeed) || project.State is null)
+        {
+            return;
+        }
+
+        project.TryUpdateModel<SeedCardModel>(
+            "Seed",
+            model =>
+            {
+                if (!model.IsRandomizeEnabled && !options.HasFlag(GenerateFlags.UseRandomSeed))
+                {
+                    return model;
+                }
+
+                return model with { Seed = Random.Shared.NextInt64(0, int.MaxValue) };
+            }
+        );
+    }
+
+    private async Task DrainGenerationQueueAsync(CancellationToken cancellationToken)
+    {
+        if (IsProcessingGenerationQueue || GenerationQueue.Count == 0)
+        {
+            return;
+        }
+
+        IsProcessingGenerationQueue = true;
+
+        try
+        {
+            while (GenerationQueue.Count > 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var next = GenerationQueue[0];
+                GenerationQueue.RemoveAt(0);
+
+                try
+                {
+                    await RunQueuedGenerationAsync(next, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (ValidationException e)
+                {
+                    Logger.Debug(e, "Queued generation validation failed");
+                    notificationService.Show(
+                        Resources.Label_GenerationQueue,
+                        e.Message,
+                        NotificationType.Error
+                    );
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Queued generation failed");
+                    notificationService.Show(
+                        Resources.Label_GenerationQueue,
+                        $"{e.GetType().Name}: {e.Message}",
+                        NotificationType.Error
+                    );
+                }
+            }
+        }
+        finally
+        {
+            IsProcessingGenerationQueue = false;
+        }
+    }
+
+    private async Task RunQueuedGenerationAsync(InferenceQueueItem item, CancellationToken cancellationToken)
+    {
+        if (item.Project.State is null)
+        {
+            throw new ValidationException("Queued project has no state");
+        }
+
+        var previousState = SaveStateToJsonObject();
+
+        try
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => LoadStateFromJsonObject(item.Project.State));
+
+            var overrides = GenerateOverrides.FromFlags(item.Flags | GenerateFlags.UseCurrentSeed);
+            await GenerateImageImpl(overrides, cancellationToken);
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => LoadStateFromJsonObject(previousState));
         }
     }
 

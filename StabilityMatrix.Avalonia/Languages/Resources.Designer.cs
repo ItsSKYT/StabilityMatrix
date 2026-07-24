@@ -5095,5 +5095,65 @@ namespace StabilityMatrix.Avalonia.Languages {
                 return ResourceManager.GetString("Error_GeminiAccessForbidden", resourceCulture);
             }
         }
+
+        public static string Action_AddToQueue {
+            get {
+                return ResourceManager.GetString("Action_AddToQueue", resourceCulture);
+            }
+        }
+
+        public static string Action_MoveUp {
+            get {
+                return ResourceManager.GetString("Action_MoveUp", resourceCulture);
+            }
+        }
+
+        public static string Action_MoveDown {
+            get {
+                return ResourceManager.GetString("Action_MoveDown", resourceCulture);
+            }
+        }
+
+        public static string Label_GenerationQueue {
+            get {
+                return ResourceManager.GetString("Label_GenerationQueue", resourceCulture);
+            }
+        }
+
+        public static string Label_QueuedJobs {
+            get {
+                return ResourceManager.GetString("Label_QueuedJobs", resourceCulture);
+            }
+        }
+
+        public static string Label_GenerationQueuedCount {
+            get {
+                return ResourceManager.GetString("Label_GenerationQueuedCount", resourceCulture);
+            }
+        }
+
+        public static string Label_Queue {
+            get {
+                return ResourceManager.GetString("Label_Queue", resourceCulture);
+            }
+        }
+
+        public static string Tooltip_AddCurrentSettingsToQueue {
+            get {
+                return ResourceManager.GetString("Tooltip_AddCurrentSettingsToQueue", resourceCulture);
+            }
+        }
+
+        public static string Tooltip_ShowGenerationQueue {
+            get {
+                return ResourceManager.GetString("Tooltip_ShowGenerationQueue", resourceCulture);
+            }
+        }
+
+        public static string Label_LoRA {
+            get {
+                return ResourceManager.GetString("Label_LoRA", resourceCulture);
+            }
+        }
     }
 }

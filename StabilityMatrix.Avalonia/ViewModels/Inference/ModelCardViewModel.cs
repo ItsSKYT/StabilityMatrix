@@ -126,7 +126,7 @@ public partial class ModelCardViewModel(
     private int clipSkip = 1;
 
     [ObservableProperty]
-    private bool isExtraNetworksEnabled;
+    private bool isExtraNetworksEnabled = true;
 
     [ObservableProperty]
     private bool isModelLoaderSelectionEnabled;
@@ -254,7 +254,7 @@ public partial class ModelCardViewModel(
         Enum.GetValues<InferenceWorkflowProfile>().ToList();
 
     public StackEditableCardViewModel ExtraNetworksStackCardViewModel { get; } =
-        new(vmFactory) { Title = Resources.Label_ExtraNetworks, AvailableModules = [typeof(LoraModule)] };
+        new(vmFactory) { Title = Resources.Label_LoRA, AvailableModules = [typeof(LoraModule)] };
 
     public IInferenceClientManager ClientManager { get; } = clientManager;
 
@@ -765,11 +765,20 @@ public partial class ModelCardViewModel(
             }
         }
 
-        // Load extra networks if enabled
-        if (IsExtraNetworksEnabled)
+        // Load extra networks later via PreClipEncodeActions (after prompt <lora> tags)
+    }
+
+    /// <summary>
+    /// Applies UI LoRA stack. Call after prompt text &lt;lora&gt; tags so both layers apply.
+    /// </summary>
+    public void ApplyExtraNetworksStep(ModuleApplyStepEventArgs e)
+    {
+        if (!IsExtraNetworksEnabled)
         {
-            ExtraNetworksStackCardViewModel.ApplyStep(e);
+            return;
         }
+
+        ExtraNetworksStackCardViewModel.ApplyStep(e);
     }
 
     /// <inheritdoc />

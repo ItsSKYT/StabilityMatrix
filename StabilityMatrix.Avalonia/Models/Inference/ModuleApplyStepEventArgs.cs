@@ -30,9 +30,23 @@ public class ModuleApplyStepEventArgs : EventArgs
 
     public List<Action<ModuleApplyStepEventArgs>> PreOutputActions { get; init; } = [];
 
+    /// <summary>
+    /// Runs after prompt text LoRAs are loaded and before CLIPTextEncode.
+    /// Use for UI LoRAs that should stack on top of &lt;lora&gt; tags in the prompt.
+    /// </summary>
+    public List<Action<ModuleApplyStepEventArgs>> PreClipEncodeActions { get; init; } = [];
+
     public void InvokeAllPreOutputActions()
     {
         foreach (var action in PreOutputActions)
+        {
+            action(this);
+        }
+    }
+
+    public void InvokeAllPreClipEncodeActions()
+    {
+        foreach (var action in PreClipEncodeActions)
         {
             action(this);
         }

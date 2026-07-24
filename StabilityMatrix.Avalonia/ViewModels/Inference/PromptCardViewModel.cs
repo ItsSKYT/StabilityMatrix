@@ -333,7 +333,13 @@ public partial class PromptCardViewModel
                 modelConnections.Model = lorasGroup.Output1;
                 modelConnections.Clip = lorasGroup.Output2;
             }
+        }
 
+        // UI LoRAs stack on top of prompt <lora> tags, before CLIP encode
+        e.InvokeAllPreClipEncodeActions();
+
+        foreach (var modelConnections in e.Builder.Connections.Models.Values)
+        {
             // Clips
             var positiveClip = e.Nodes.AddTypedNode(
                 new ComfyNodeBuilder.CLIPTextEncode

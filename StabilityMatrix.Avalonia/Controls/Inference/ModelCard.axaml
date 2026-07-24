@@ -90,7 +90,7 @@
                                             <ui:ToggleMenuFlyoutItem
                                                 IconSource="{StaticResource IconCube}"
                                                 IsChecked="{Binding IsExtraNetworksEnabled}"
-                                                Text="{x:Static lang:Resources.Label_ExtraNetworks}" />
+                                                Text="{x:Static lang:Resources.Label_LoRA}" />
                                             <ui:ToggleMenuFlyoutItem
                                                 IconSource="{StaticResource IconTableCellEdit}"
                                                 IsChecked="{Binding IsClipSkipEnabled}"
@@ -431,10 +431,7 @@
                             </controls:BetterComboBox>
                         </Grid>
 
-                        <!--  Extra Networks  -->
-                        <Panel Margin="0,8,0,0" IsVisible="{Binding IsExtraNetworksEnabled}">
-                            <controls:StackEditableCard DataContext="{Binding ExtraNetworksStackCardViewModel}" />
-                        </Panel>
+                        <!--  Extra Networks moved to left stack as LoRA card  -->
 
                     </StackPanel>
                 </controls:Card>

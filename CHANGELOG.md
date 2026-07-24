@@ -5,6 +5,13 @@ All notable changes to Stability Matrix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## v2.16.2-skyt.2
+### Added
+- Inference **generation queue**: add jobs while generating, browse the queue, reorder, edit prompts, and remove items; queued jobs run automatically after the current one finishes
+- Dedicated **LoRA** card on the left Inference stack (under Sampler / Steps): pick LoRAs from your library, set strength, independent of `<lora>` tags in the prompt (UI LoRAs stack on top of text tags)
+### Fixed
+- Prompt parser treating labeled section colons (`Action:`, `Subject:`, …) as weight syntax and raising Prompt Syntax Error on valid prompts
+
 ## v2.16.1
 ### Added
 - Added **automatic text encoder and VAE selection** to the Inference Model card. Selecting a model now fills any empty encoder slots and the default VAE with the matching local files for the detected workflow, so you don't need to know which files pair with which architecture (e.g. `qwen_3_4b` or `qwen_3_8b` + Flux.2 VAE for Flux.2 Klein, `clip_l` + `t5xxl` for Flux, `qwen_3_06b` + `qwen_image_vae` for Anima). Anything you pick manually is never overridden

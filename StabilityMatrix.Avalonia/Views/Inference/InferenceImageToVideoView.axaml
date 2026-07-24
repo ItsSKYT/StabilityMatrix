@@ -9,6 +9,7 @@
     xmlns:mocks="clr-namespace:StabilityMatrix.Avalonia.DesignData"
     xmlns:vmInference="using:StabilityMatrix.Avalonia.ViewModels.Inference"
     xmlns:dock="clr-namespace:StabilityMatrix.Avalonia.Controls.Dock"
+    xmlns:lang="clr-namespace:StabilityMatrix.Avalonia.Languages"
     xmlns:modelsInference="clr-namespace:StabilityMatrix.Avalonia.Models.Inference"
     xmlns:gif="clr-namespace:Avalonia.Gif;assembly=Avalonia.Gif"
     d:DataContext="{x:Static mocks:DesignData.InferenceImageToVideoViewModel}"
@@ -136,7 +137,7 @@
                                         <Grid
                                             HorizontalAlignment="Center"
                                             ColumnDefinitions="Auto,*,Auto"
-                                            RowDefinitions="Auto,*">
+                                            RowDefinitions="Auto,Auto">
                                             <Grid.Styles>
                                                 <Style Selector="Button">
                                                     <Setter Property="MinHeight" Value="32" />
@@ -152,8 +153,13 @@
                                                 HorizontalAlignment="Stretch"
                                                 Classes="accent"
                                                 Command="{Binding GenerateImageCommand}"
-                                                CommandParameter="{x:Static modelsInference:GenerateFlags.None}"
-                                                IsVisible="{Binding !GenerateImageCommand.CanBeCanceled}">
+                                                CommandParameter="{x:Static modelsInference:GenerateFlags.None}">
+                                                <Button.IsVisible>
+                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                        <Binding Path="!GenerateImageCommand.CanBeCanceled" />
+                                                        <Binding Path="!IsProcessingGenerationQueue" />
+                                                    </MultiBinding>
+                                                </Button.IsVisible>
                                                 <Panel>
                                                     <TextBlock IsVisible="{Binding #GenerateButton.IsEnabled}"
                                                                Text="Generate Image" />
@@ -169,8 +175,14 @@
                                                 Width="130"
                                                 HorizontalAlignment="Stretch"
                                                 icons:Attached.Icon="fa-solid fa-stop"
-                                                Command="{Binding GenerateImageCancelCommand}"
-                                                IsVisible="{Binding GenerateImageCommand.CanBeCanceled}" />
+                                                Command="{Binding CancelGenerationPipelineCommand}">
+                                                <Button.IsVisible>
+                                                    <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                                                        <Binding Path="GenerateImageCommand.CanBeCanceled" />
+                                                        <Binding Path="IsProcessingGenerationQueue" />
+                                                    </MultiBinding>
+                                                </Button.IsVisible>
+                                            </Button>
 
                                             <Button
                                                 Grid.Row="1"
@@ -183,6 +195,33 @@
                                                 Command="{Binding GenerateImageCommand}"
                                                 CommandParameter="{x:Static modelsInference:GenerateFlags.UseCurrentSeed}"
                                                 ToolTip.Tip="Generate with current seed" />
+
+                                            <StackPanel
+                                                Grid.Row="0"
+                                                Grid.Column="0"
+                                                Grid.ColumnSpan="3"
+                                                Margin="0,0,0,6"
+                                                HorizontalAlignment="Center"
+                                                Orientation="Horizontal"
+                                                Spacing="6">
+                                                <Button
+                                                    Padding="10,6"
+                                                    Classes="transparent"
+                                                    Command="{Binding EnqueueGenerationCommand}"
+                                                    CommandParameter="{x:Static modelsInference:GenerateFlags.None}"
+                                                    Content="{x:Static lang:Resources.Action_AddToQueue}"
+                                                    ToolTip.Tip="{x:Static lang:Resources.Tooltip_AddCurrentSettingsToQueue}" />
+                                                <Button
+                                                    Padding="10,6"
+                                                    Classes="transparent"
+                                                    Command="{Binding ShowGenerationQueueCommand}"
+                                                    ToolTip.Tip="{x:Static lang:Resources.Tooltip_ShowGenerationQueue}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <TextBlock Text="{x:Static lang:Resources.Label_Queue}" />
+                                                        <TextBlock Text="{Binding GenerationQueueCount, StringFormat={}{0}}" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
                                         </Grid>
                                     </controls:Card>
                                 </StackPanel>
