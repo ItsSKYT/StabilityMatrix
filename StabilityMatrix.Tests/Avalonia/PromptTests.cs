@@ -41,6 +41,22 @@ public class PromptTests
     }
 
     [TestMethod]
+    public void TestPromptLabeledSections_WithColons_ShouldProcess()
+    {
+        const string raw =
+            "Photo focused on (one female subject:2.5).\n"
+            + "Action: She is (lying on her back:1.5) in bed.\n"
+            + "Subject: An girl with warm blonde hair.\n"
+            + "(ai generated:-2.0)";
+
+        var prompt = Prompt.FromRawText(raw, tokenizerProvider);
+        prompt.Process(processWildcards: false);
+
+        Assert.AreEqual(raw, prompt.ProcessedText);
+        Assert.AreEqual(0, prompt.ExtraNetworks!.Count);
+    }
+
+    [TestMethod]
     public void TestPromptWeightParsing()
     {
         var prompt = Prompt.FromRawText("<lora:my_model:1.5>", tokenizerProvider);
