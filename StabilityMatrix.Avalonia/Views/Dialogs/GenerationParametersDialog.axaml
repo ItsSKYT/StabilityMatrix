@@ -1,0 +1,70 @@
+<controls:UserControlBase
+    x:Class="StabilityMatrix.Avalonia.Views.Dialogs.GenerationParametersDialog"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:StabilityMatrix.Avalonia.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:dialogs="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Dialogs"
+    xmlns:lang="clr-namespace:StabilityMatrix.Avalonia.Languages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    d:DesignHeight="520"
+    d:DesignWidth="600"
+    x:DataType="dialogs:GenerationParametersDialogViewModel"
+    mc:Ignorable="d">
+    <Grid Margin="16" RowDefinitions="Auto,*,Auto">
+        <TextBlock
+            FontSize="14"
+            Opacity="0.7"
+            Text="{Binding FileName}"
+            TextTrimming="CharacterEllipsis"
+            IsVisible="{Binding FileName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="0,12,0,0"
+            MaxHeight="420"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="dialogs:GenerationParametersDialogViewModel+ParameterItem">
+                        <Grid Margin="0,0,0,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="{Binding Label}"
+                                Theme="{DynamicResource BodyStrongTextBlockStyle}" />
+                            <Button
+                                Grid.Column="1"
+                                Padding="8,4"
+                                Classes="transparent"
+                                Command="{Binding $parent[ItemsControl].((dialogs:GenerationParametersDialogViewModel)DataContext).CopyValueCommand}"
+                                CommandParameter="{Binding Value}"
+                                ToolTip.Tip="{x:Static lang:Resources.Action_Copy}">
+                                <ui:SymbolIcon FontSize="14" Symbol="Copy" />
+                            </Button>
+                            <Border
+                                Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                Margin="0,4,0,0"
+                                Padding="10,8"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                CornerRadius="6">
+                                <SelectableTextBlock
+                                    Text="{Binding Value}"
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Button
+            Grid.Row="2"
+            Margin="0,8,0,0"
+            HorizontalAlignment="Stretch"
+            Command="{Binding CopyAllCommand}"
+            Content="{x:Static lang:Resources.Action_CopyAll}" />
+    </Grid>
+</controls:UserControlBase>

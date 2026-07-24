@@ -463,6 +463,26 @@ public class ModelCardWorkflowProfileTests
     }
 
     [TestMethod]
+    public void AutoSelect_Krea2Unet_FillsQwen3VlEncoderAndQwenImageVae()
+    {
+        var encoder = LocalModel("qwen3vl_4b_fp8_scaled.safetensors", SharedFolderType.TextEncoders);
+        var vae = LocalModel("qwen_image_vae.safetensors", SharedFolderType.VAE);
+
+        var vm = CreateViewModel(clipModels: [encoder], vaeModels: [vae]);
+
+        vm.SelectedUnifiedModel = LocalModel(
+            "krea2_turbo_fp8_scaled.safetensors",
+            SharedFolderType.DiffusionModels
+        );
+
+        Assert.AreEqual(InferenceWorkflowProfile.Krea2, vm.ResolvedWorkflowProfile);
+        Assert.AreEqual("krea2", vm.SelectedClipType);
+        Assert.AreEqual(1, vm.TextEncoders.Count);
+        Assert.AreEqual(encoder, vm.TextEncoders[0].SelectedModel);
+        Assert.AreEqual(vae, vm.SelectedVae);
+    }
+
+    [TestMethod]
     public void AutoSelect_DoesNotOverrideUserEncoderPick()
     {
         var qwen4B = LocalModel("qwen_3_4b.safetensors", SharedFolderType.TextEncoders);

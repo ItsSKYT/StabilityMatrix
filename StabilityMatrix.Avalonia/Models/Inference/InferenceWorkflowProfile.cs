@@ -16,6 +16,9 @@ public enum InferenceWorkflowProfile
     [StringValue("Flux.2")]
     Flux2,
 
+    [StringValue("Krea2")]
+    Krea2,
+
     [StringValue("Z-Image Base")]
     ZImageBase,
 

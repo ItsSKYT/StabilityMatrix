@@ -279,7 +279,10 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
                 or InferenceWorkflowProfile.HiDream
         || (
             ResolvedWorkflowProfile is InferenceWorkflowProfile.Custom
-            && ModelCardViewModel.SelectedClipType is not "stable_diffusion" and not "flux2"
+            && ModelCardViewModel.SelectedClipType
+                is not "stable_diffusion"
+                    and not "flux2"
+                    and not "krea2"
         );
 
     protected bool UsesFluxGuidanceSampler =>
@@ -287,7 +290,11 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
         || (
             ResolvedWorkflowProfile is InferenceWorkflowProfile.Custom
             && IsUnetLoader
-            && ModelCardViewModel.SelectedClipType is not "stable_diffusion" and not "lumina2" and not "flux2"
+            && ModelCardViewModel.SelectedClipType
+                is not "stable_diffusion"
+                    and not "lumina2"
+                    and not "flux2"
+                    and not "krea2"
         );
 
     protected void ApplyModelSamplingForCurrentWorkflow(ModuleApplyStepEventArgs applyArgs)
@@ -355,6 +362,13 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
                 SamplerCardViewModel.SelectedScheduler = ComfyScheduler.Normal;
                 SamplerCardViewModel.Steps = 20;
                 SamplerCardViewModel.CfgScale = 5.0d;
+                break;
+            case InferenceWorkflowProfile.Krea2:
+                // Official Comfy-Org Krea-2 Turbo template: Euler / Simple / 8 / CFG 1
+                SamplerCardViewModel.SelectedSampler = ComfySampler.Euler;
+                SamplerCardViewModel.SelectedScheduler = ComfyScheduler.Simple;
+                SamplerCardViewModel.Steps = 8;
+                SamplerCardViewModel.CfgScale = 1.0d;
                 break;
             case InferenceWorkflowProfile.ZImageTurbo:
                 SamplerCardViewModel.SelectedSampler = ComfySampler.ResMultistep;

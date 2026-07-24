@@ -401,3 +401,7 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .husky/pre-commit
+
+# Fork update signing keys (never commit private key)
+Build/update-keys/
+

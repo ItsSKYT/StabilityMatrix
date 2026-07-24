@@ -361,6 +361,29 @@ public partial class OutputsPageViewModel : PageViewModelBase
 
     public Task OpenImage(string imagePath) => ProcessRunner.OpenFileBrowser(imagePath);
 
+    public async Task ShowParameters(OutputImageViewModel? item)
+    {
+        if (item?.ImageFile.GenerationParameters is not { } parameters)
+        {
+            return;
+        }
+
+        var vm = vmFactory.Get<GenerationParametersDialogViewModel>();
+        vm.Parameters = parameters;
+        vm.FileName = item.ImageFile.FileName;
+        await vm.GetDialog().ShowAsync();
+    }
+
+    public async Task CopyPrompt(OutputImageViewModel? item)
+    {
+        if (item?.ImageFile.GenerationParameters?.PositivePrompt is not { } prompt || App.Clipboard is null)
+        {
+            return;
+        }
+
+        await App.Clipboard.SetTextAsync(prompt);
+    }
+
     public void Refresh()
     {
         Dispatcher.UIThread.Post(RefreshCategories);

@@ -332,6 +332,18 @@ public record GenerationParameters
     }
 
     /// <summary>
+    /// A1111-style parameters text used in PNG metadata and clipboard copy.
+    /// </summary>
+    public string GetParametersText()
+    {
+        return $"{PositivePrompt}\nNegative prompt: {NegativePrompt}\n"
+            + $"Steps: {Steps}, Sampler: {Sampler}, "
+            + $"CFG scale: {CfgScale}, Seed: {Seed}, "
+            + $"Size: {Width}x{Height}, "
+            + $"Model hash: {ModelHash}, Model: {ModelName}";
+    }
+
+    /// <summary>
     /// Return a sample parameters for UI preview
     /// </summary>
     public static GenerationParameters GetSample()

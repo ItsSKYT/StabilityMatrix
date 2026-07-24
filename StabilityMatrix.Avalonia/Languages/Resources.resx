@@ -1832,4 +1832,22 @@ Account tokens will not be viewable after saving, please make a note of them if 
   <data name="Action_CustomFolderEllipsis" xml:space="preserve">
     <value>Custom...</value>
   </data>
+  <data name="Action_SeeParameters" xml:space="preserve">
+    <value>See Parameters</value>
+  </data>
+  <data name="Action_CopyPrompt" xml:space="preserve">
+    <value>Copy Prompt</value>
+  </data>
+  <data name="Action_CopyAll" xml:space="preserve">
+    <value>Copy All</value>
+  </data>
+  <data name="Label_Parameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="Label_ModelHash" xml:space="preserve">
+    <value>Model Hash</value>
+  </data>
+  <data name="Label_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
 </root>

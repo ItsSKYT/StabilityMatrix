@@ -40,6 +40,7 @@ public class CivitBaseModelTypeService(
         "Hunyuan Video",
         "Illustrious",
         "Kolors",
+        "Krea2",
         "LTXV",
         "LTXV 2.3",
         "LTXV2",

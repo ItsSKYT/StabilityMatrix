@@ -492,6 +492,7 @@ public partial class ModelPickerDialogViewModel : ContentDialogViewModelBase
         {
             InferenceWorkflowProfile.Flux => ["Flux.1"],
             InferenceWorkflowProfile.Flux2 => ["Flux.2"],
+            InferenceWorkflowProfile.Krea2 => ["Krea2", "Krea 2"],
             InferenceWorkflowProfile.ZImageBase => ["ZImageBase"],
             InferenceWorkflowProfile.ZImageTurbo => ["ZImageTurbo"],
             InferenceWorkflowProfile.Anima => ["Anima"],

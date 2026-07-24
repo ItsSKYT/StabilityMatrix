@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using StabilityMatrix.Core.Database;
+using StabilityMatrix.Core.Helper;
+using StabilityMatrix.Core.Models;
 using StabilityMatrix.Core.Models.Database;
 using StabilityMatrix.Core.Models.FileInterfaces;
 
@@ -739,6 +741,8 @@ public class ImageGenerationChatService(
             {
                 var imageBytes = Convert.FromBase64String(generatedImage.Base64Data);
                 var extension = GetExtensionFromMimeType(generatedImage.MimeType);
+                var parameters = CreateGenerationParameters(textPrompt, providerId, providerOptions);
+                imageBytes = ImageMetadata.EmbedGenerationParameters(imageBytes, extension, parameters);
                 var fileName = CreateOutputFileName(extension);
                 var savedPath = Path.Combine(outputDir, fileName);
 
@@ -1033,6 +1037,12 @@ public class ImageGenerationChatService(
             {
                 var imageBytes = Convert.FromBase64String(generatedImage.Base64Data);
                 var extension = GetExtensionFromMimeType(generatedImage.MimeType);
+                var parameters = CreateGenerationParameters(
+                    lastUserMessage.TextContent,
+                    providerId,
+                    providerOptions
+                );
+                imageBytes = ImageMetadata.EmbedGenerationParameters(imageBytes, extension, parameters);
                 var fileName = CreateOutputFileName(extension);
                 var savedPath = Path.Combine(outputDir, fileName);
 
@@ -1111,5 +1121,114 @@ public class ImageGenerationChatService(
             "image/gif" => ".gif",
             _ => ".png",
         };
+    }
+
+    private static GenerationParameters CreateGenerationParameters(
+        string? textPrompt,
+        string providerId,
+        Dictionary<string, object>? providerOptions
+    )
+    {
+        var parameters = new GenerationParameters
+        {
+            PositivePrompt = textPrompt,
+            ModelName = providerId,
+        };
+
+        if (providerOptions is null)
+        {
+            return parameters;
+        }
+
+        if (TryGetOptionString(providerOptions, "model", out var model) && !string.IsNullOrWhiteSpace(model))
+        {
+            parameters.ModelName = model;
+        }
+
+        if (TryGetOptionInt(providerOptions, "Width", out var width))
+        {
+            parameters.Width = width;
+        }
+
+        if (TryGetOptionInt(providerOptions, "Height", out var height))
+        {
+            parameters.Height = height;
+        }
+
+        if (TryGetOptionInt(providerOptions, "Steps", out var steps))
+        {
+            parameters.Steps = steps;
+        }
+
+        if (TryGetOptionDouble(providerOptions, "CfgScale", out var cfgScale))
+        {
+            parameters.CfgScale = cfgScale;
+        }
+
+        return parameters;
+    }
+
+    private static bool TryGetOptionString(
+        Dictionary<string, object> options,
+        string key,
+        out string? value
+    )
+    {
+        value = null;
+        if (!options.TryGetValue(key, out var raw) || raw is null)
+        {
+            return false;
+        }
+
+        value = raw.ToString();
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool TryGetOptionInt(Dictionary<string, object> options, string key, out int value)
+    {
+        value = 0;
+        if (!options.TryGetValue(key, out var raw) || raw is null)
+        {
+            return false;
+        }
+
+        switch (raw)
+        {
+            case int i:
+                value = i;
+                return true;
+            case long l:
+                value = (int)l;
+                return true;
+            case double d:
+                value = (int)d;
+                return true;
+            default:
+                return int.TryParse(raw.ToString(), out value);
+        }
+    }
+
+    private static bool TryGetOptionDouble(Dictionary<string, object> options, string key, out double value)
+    {
+        value = 0;
+        if (!options.TryGetValue(key, out var raw) || raw is null)
+        {
+            return false;
+        }
+
+        switch (raw)
+        {
+            case double d:
+                value = d;
+                return true;
+            case float f:
+                value = f;
+                return true;
+            case int i:
+                value = i;
+                return true;
+            default:
+                return double.TryParse(raw.ToString(), out value);
+        }
     }
 }

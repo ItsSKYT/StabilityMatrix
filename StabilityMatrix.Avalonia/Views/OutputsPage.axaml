@@ -297,6 +297,23 @@
 
                                         <ui:MenuFlyoutSeparator IsVisible="{Binding ImageFile.GenerationParameters, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
+                                        <ui:MenuFlyoutItem
+                                            Command="{Binding $parent[ItemsRepeater].((vm:OutputsPageViewModel)DataContext).ShowParameters}"
+                                            CommandParameter="{Binding}"
+                                            HotKey="{x:Null}"
+                                            IconSource="Info"
+                                            IsVisible="{Binding ImageFile.GenerationParameters, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                            Text="{x:Static lang:Resources.Action_SeeParameters}" />
+                                        <ui:MenuFlyoutItem
+                                            Command="{Binding $parent[ItemsRepeater].((vm:OutputsPageViewModel)DataContext).CopyPrompt}"
+                                            CommandParameter="{Binding}"
+                                            HotKey="{x:Null}"
+                                            IconSource="Copy"
+                                            IsVisible="{Binding ImageFile.GenerationParameters, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                            Text="{x:Static lang:Resources.Action_CopyPrompt}" />
+
+                                        <ui:MenuFlyoutSeparator IsVisible="{Binding ImageFile.GenerationParameters, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
                                         <ui:MenuFlyoutSubItem
                                             IconSource="Share"
                                             IsVisible="{Binding ImageFile.GenerationParameters, Converter={x:Static ObjectConverters.IsNotNull}}"

@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using ExifLibrary;
+using Force.Crc32;
 using KGySoft.CoreLibraries;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
@@ -25,6 +28,149 @@ public class ImageMetadata
 
     private static readonly byte[] Riff = "RIFF"u8.ToArray();
     private static readonly byte[] Webp = "WEBP"u8.ToArray();
+
+    private static readonly JsonSerializerOptions UnicodeJsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+    };
+
+    /// <summary>
+    /// Embeds generation parameters into PNG or WebP image bytes. Other formats are returned unchanged.
+    /// </summary>
+    public static byte[] EmbedGenerationParameters(
+        byte[] inputImage,
+        string extension,
+        GenerationParameters generationParameters
+    )
+    {
+        if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase))
+        {
+            return AddGenerationParametersToPng(inputImage, generationParameters);
+        }
+
+        if (extension.Equals(".webp", StringComparison.OrdinalIgnoreCase))
+        {
+            var paramsJson = JsonSerializer.Serialize(generationParameters, UnicodeJsonOptions);
+            var result = AddMetadataToWebp(
+                    inputImage,
+                    new Dictionary<ExifTag, string> { { ExifTag.ImageDescription, paramsJson } }
+                )
+                .ToArray();
+
+            return result.Length > 0 ? result : inputImage;
+        }
+
+        return inputImage;
+    }
+
+    /// <summary>
+    /// Inserts <c>parameters</c> and <c>parameters-json</c> PNG text chunks before the first IDAT.
+    /// </summary>
+    public static byte[] AddGenerationParametersToPng(
+        byte[] inputImage,
+        GenerationParameters generationParameters
+    )
+    {
+        if (inputImage.Length < 8 || !inputImage[..8].AsSpan().SequenceEqual(PngHeader))
+        {
+            return inputImage;
+        }
+
+        using var memoryStream = new MemoryStream();
+        var position = 8;
+        memoryStream.Write(inputImage, 0, position);
+
+        var metadataInserted = false;
+
+        while (position + 12 <= inputImage.Length)
+        {
+            var chunkLength = BitConverter.ToInt32(
+                inputImage[position..(position + 4)].AsEnumerable().Reverse().ToArray(),
+                0
+            );
+
+            var totalChunkSize = chunkLength + 12;
+
+            if (chunkLength < 0 || position + totalChunkSize > inputImage.Length)
+            {
+                memoryStream.Write(inputImage, position, inputImage.Length - position);
+                break;
+            }
+
+            var chunkType = Encoding.ASCII.GetString(inputImage[(position + 4)..(position + 8)]);
+
+            switch (chunkType)
+            {
+                case "IHDR":
+                {
+                    var imageWidth = BitConverter.ToInt32(
+                        inputImage[(position + 8)..(position + 12)].AsEnumerable().Reverse().ToArray()
+                    );
+                    var imageHeight = BitConverter.ToInt32(
+                        inputImage[(position + 12)..(position + 16)].AsEnumerable().Reverse().ToArray()
+                    );
+
+                    generationParameters.Width = imageWidth;
+                    generationParameters.Height = imageHeight;
+                    break;
+                }
+                case "IDAT" when !metadataInserted:
+                {
+                    var paramsData = generationParameters.GetParametersText();
+                    var paramsChunk = BuildTextChunk("parameters", paramsData);
+                    var paramsJson = JsonSerializer.Serialize(generationParameters, UnicodeJsonOptions);
+                    var paramsJsonChunk = BuildTextChunk("parameters-json", paramsJson);
+
+                    memoryStream.Write(paramsChunk, 0, paramsChunk.Length);
+                    memoryStream.Write(paramsJsonChunk, 0, paramsJsonChunk.Length);
+
+                    metadataInserted = true;
+                    break;
+                }
+            }
+
+            memoryStream.Write(inputImage, position, totalChunkSize);
+            position += totalChunkSize;
+        }
+
+        return memoryStream.ToArray();
+    }
+
+    private static byte[] BuildTextChunk(string key, string value)
+    {
+        if (value.Any(c => c > 0xFF))
+        {
+            return BuildInternationalTextChunk(key, value);
+        }
+
+        var textData = $"{key}\0{value}";
+        var dataBytes = Encoding.UTF8.GetBytes(textData);
+        var textDataLength = BitConverter.GetBytes(dataBytes.Length).AsEnumerable().Reverse().ToArray();
+        var textDataBytes = Text.Concat(dataBytes).ToArray();
+        var crc = BitConverter
+            .GetBytes(Crc32Algorithm.Compute(textDataBytes))
+            .AsEnumerable()
+            .Reverse()
+            .ToArray();
+
+        return textDataLength.Concat(textDataBytes).Concat(crc).ToArray();
+    }
+
+    private static byte[] BuildInternationalTextChunk(string key, string value)
+    {
+        var keyBytes = Encoding.Latin1.GetBytes(key);
+        var valueBytes = Encoding.UTF8.GetBytes(value);
+        byte[] dataBytes = [.. keyBytes, 0, 0, 0, 0, 0, .. valueBytes];
+        var dataLength = BitConverter.GetBytes(dataBytes.Length).AsEnumerable().Reverse().ToArray();
+        var chunkTypeAndData = InternationalText.Concat(dataBytes).ToArray();
+        var crc = BitConverter
+            .GetBytes(Crc32Algorithm.Compute(chunkTypeAndData))
+            .AsEnumerable()
+            .Reverse()
+            .ToArray();
+
+        return dataLength.Concat(chunkTypeAndData).Concat(crc).ToArray();
+    }
 
     public static ImageMetadata ParseFile(FilePath path)
     {

@@ -26,7 +26,8 @@ public class UpdateHelper : IUpdateHelper
     private readonly System.Timers.Timer timer = new(TimeSpan.FromMinutes(60));
 
     private string UpdateManifestUrl =>
-        debugOptions.UpdateManifestUrl ?? "https://cdn.lykos.ai/update-v3.json";
+        debugOptions.UpdateManifestUrl
+        ?? "https://raw.githubusercontent.com/ItsSKYT/StabilityMatrix/main/update/update-v3.json";
 
     public const string UpdateFolderName = ".StabilityMatrixUpdate";
     public static DirectoryPath UpdateFolder => Compat.AppCurrentDir.JoinDir(UpdateFolderName);
@@ -57,17 +58,27 @@ public class UpdateHelper : IUpdateHelper
 
         timer.Elapsed += async (_, _) =>
         {
+            if (!settingsManager.Settings.CheckForUpdates)
+                return;
+
             await CheckForUpdate().ConfigureAwait(false);
         };
 
         settingsManager.RegisterOnLibraryDirSet(_ =>
         {
-            timer.Start();
+            if (settingsManager.Settings.CheckForUpdates)
+                timer.Start();
         });
     }
 
     public async Task StartCheckingForUpdates()
     {
+        if (!settingsManager.Settings.CheckForUpdates)
+        {
+            logger.LogInformation("Update checks disabled in settings");
+            return;
+        }
+
         timer.Enabled = true;
         timer.Start();
         await CheckForUpdate().ConfigureAwait(false);

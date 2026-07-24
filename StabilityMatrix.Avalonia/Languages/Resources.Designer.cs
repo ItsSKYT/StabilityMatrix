@@ -204,11 +204,29 @@ namespace StabilityMatrix.Avalonia.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copy All.
+        /// </summary>
+        public static string Action_CopyAll {
+            get {
+                return ResourceManager.GetString("Action_CopyAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copy Details.
         /// </summary>
         public static string Action_CopyDetails {
             get {
                 return ResourceManager.GetString("Action_CopyDetails", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy Prompt.
+        /// </summary>
+        public static string Action_CopyPrompt {
+            get {
+                return ResourceManager.GetString("Action_CopyPrompt", resourceCulture);
             }
         }
         
@@ -704,6 +722,15 @@ namespace StabilityMatrix.Avalonia.Languages {
         public static string Action_SelectAll {
             get {
                 return ResourceManager.GetString("Action_SelectAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to See Parameters.
+        /// </summary>
+        public static string Action_SeeParameters {
+            get {
+                return ResourceManager.GetString("Action_SeeParameters", resourceCulture);
             }
         }
         
@@ -2707,6 +2734,15 @@ namespace StabilityMatrix.Avalonia.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Model Hash.
+        /// </summary>
+        public static string Label_ModelHash {
+            get {
+                return ResourceManager.GetString("Label_ModelHash", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Model Browser.
         /// </summary>
         public static string Label_ModelBrowser {
@@ -3099,6 +3135,15 @@ namespace StabilityMatrix.Avalonia.Languages {
         public static string Label_Password {
             get {
                 return ResourceManager.GetString("Label_Password", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string Label_Parameters {
+            get {
+                return ResourceManager.GetString("Label_Parameters", resourceCulture);
             }
         }
         
@@ -3603,6 +3648,15 @@ namespace StabilityMatrix.Avalonia.Languages {
         public static string Label_ShowUnsupportedPythonVersions {
             get {
                 return ResourceManager.GetString("Label_ShowUnsupportedPythonVersions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Size.
+        /// </summary>
+        public static string Label_Size {
+            get {
+                return ResourceManager.GetString("Label_Size", resourceCulture);
             }
         }
         

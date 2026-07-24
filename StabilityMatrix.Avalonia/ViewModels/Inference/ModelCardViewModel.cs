@@ -246,6 +246,7 @@ public partial class ModelCardViewModel(
             "newbie",
             "ace",
             "flux2",
+            "krea2",
             "lumina2",
             "stable_diffusion",
         ];
@@ -321,6 +322,7 @@ public partial class ModelCardViewModel(
             is InferenceWorkflowProfile.DefaultCheckpoint
                 or InferenceWorkflowProfile.Flux
                 or InferenceWorkflowProfile.Flux2
+                or InferenceWorkflowProfile.Krea2
                 or InferenceWorkflowProfile.ZImageBase
                 or InferenceWorkflowProfile.ZImageTurbo
                 or InferenceWorkflowProfile.Anima;
@@ -338,6 +340,8 @@ public partial class ModelCardViewModel(
                 "Apply recommended sampler defaults: Euler / Simple / 20 steps / CFG 3.5",
             InferenceWorkflowProfile.Flux2 =>
                 "Apply recommended sampler defaults: Euler / Flux2Scheduler / 20 steps / CFG 5",
+            InferenceWorkflowProfile.Krea2 =>
+                "Apply recommended sampler defaults: Euler / Simple / 8 steps / CFG 1",
             InferenceWorkflowProfile.ZImageBase =>
                 "Apply recommended sampler defaults: Res Multistep / Simple / 30 steps / CFG 4",
             InferenceWorkflowProfile.ZImageTurbo =>
@@ -408,6 +412,7 @@ public partial class ModelCardViewModel(
             if (
                 impliedProfile
                 is InferenceWorkflowProfile.Flux2
+                    or InferenceWorkflowProfile.Krea2
                     or InferenceWorkflowProfile.ZImageBase
                     or InferenceWorkflowProfile.ZImageTurbo
                     or InferenceWorkflowProfile.HiDream
@@ -908,6 +913,13 @@ public partial class ModelCardViewModel(
             if (baseModel.StartsWith("Flux.2", StringComparison.OrdinalIgnoreCase))
                 return InferenceWorkflowProfile.Flux2;
 
+            if (
+                baseModel.Equals("Krea2", StringComparison.OrdinalIgnoreCase)
+                || baseModel.StartsWith("Krea 2", StringComparison.OrdinalIgnoreCase)
+                || baseModel.StartsWith("Krea2", StringComparison.OrdinalIgnoreCase)
+            )
+                return InferenceWorkflowProfile.Krea2;
+
             if (baseModel.StartsWith("Flux.1", StringComparison.OrdinalIgnoreCase))
                 return InferenceWorkflowProfile.Flux;
 
@@ -934,6 +946,13 @@ public partial class ModelCardViewModel(
             || name.Contains("flux_2", StringComparison.OrdinalIgnoreCase)
         )
             return InferenceWorkflowProfile.Flux2;
+
+        if (
+            name.Contains("krea2", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("krea-2", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("krea_2", StringComparison.OrdinalIgnoreCase)
+        )
+            return InferenceWorkflowProfile.Krea2;
 
         if (name.Contains("flux", StringComparison.OrdinalIgnoreCase))
             return InferenceWorkflowProfile.Flux;
@@ -1009,7 +1028,7 @@ public partial class ModelCardViewModel(
             var defaultCount = SelectedClipType switch
             {
                 "flux" => 2,
-                "flux2" or "lumina2" or "stable_diffusion" => 1,
+                "flux2" or "krea2" or "lumina2" or "stable_diffusion" => 1,
                 "sd3" => 3,
                 "hidream" => 4,
                 _ => 2,
@@ -1209,6 +1228,7 @@ public partial class ModelCardViewModel(
             InferenceWorkflowProfile.DefaultCheckpoint => false,
             InferenceWorkflowProfile.Flux
             or InferenceWorkflowProfile.Flux2
+            or InferenceWorkflowProfile.Krea2
             or InferenceWorkflowProfile.Anima
             or InferenceWorkflowProfile.ZImageBase
             or InferenceWorkflowProfile.ZImageTurbo
@@ -1317,6 +1337,7 @@ public partial class ModelCardViewModel(
         {
             InferenceWorkflowProfile.Flux => "flux",
             InferenceWorkflowProfile.Flux2 => "flux2",
+            InferenceWorkflowProfile.Krea2 => "krea2",
             InferenceWorkflowProfile.ZImageBase or InferenceWorkflowProfile.ZImageTurbo => "lumina2",
             InferenceWorkflowProfile.Anima => "stable_diffusion",
             InferenceWorkflowProfile.HiDream => "hidream",
@@ -1484,6 +1505,19 @@ public partial class ModelCardViewModel(
                         name.Contains("t5xxl", StringComparison.OrdinalIgnoreCase)
                         || name.Contains("t5-xxl", StringComparison.OrdinalIgnoreCase),
                 ];
+            case InferenceWorkflowProfile.Krea2:
+                // Official Krea 2 encoder is qwen3vl_4b_fp8_scaled.safetensors (CLIP type: krea2).
+                return
+                [
+                    name =>
+                        name.Contains("qwen3vl_4b", StringComparison.OrdinalIgnoreCase)
+                        || name.Contains("qwen3vl-4b", StringComparison.OrdinalIgnoreCase)
+                        || name.Contains("qwen_3vl_4b", StringComparison.OrdinalIgnoreCase)
+                        || (
+                            name.Contains("qwen3vl", StringComparison.OrdinalIgnoreCase)
+                            && name.Contains("4b", StringComparison.OrdinalIgnoreCase)
+                        ),
+                ];
             case InferenceWorkflowProfile.ZImageBase:
             case InferenceWorkflowProfile.ZImageTurbo:
                 // Z-Image uses the Qwen3 4B encoder (the same qwen_3_4b.safetensors file
@@ -1534,7 +1568,7 @@ public partial class ModelCardViewModel(
                 "ae.safetensors",
                 StringComparison.OrdinalIgnoreCase
             ),
-            InferenceWorkflowProfile.Anima => fileName.Contains(
+            InferenceWorkflowProfile.Anima or InferenceWorkflowProfile.Krea2 => fileName.Contains(
                 "qwen_image_vae",
                 StringComparison.OrdinalIgnoreCase
             ),
@@ -1556,7 +1590,7 @@ public partial class ModelCardViewModel(
         var targetCount = SelectedClipType switch
         {
             "flux" => 2,
-            "flux2" or "lumina2" or "stable_diffusion" => 1,
+            "flux2" or "krea2" or "lumina2" or "stable_diffusion" => 1,
             "sd3" => 3,
             "hidream" => 4,
             _ => 2, // Default to 2 for unknown types

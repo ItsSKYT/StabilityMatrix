@@ -108,13 +108,7 @@ public static class PngDataHelper
                     var smprojJson = JsonSerializer.Serialize(projectDocument, UnicodeJsonOptions);
                     var smprojChunk = BuildTextChunk("smproj", smprojJson);
 
-                    var paramsData =
-                        $"{generationParameters.PositivePrompt}\nNegative prompt: {generationParameters.NegativePrompt}\n"
-                        + $"Steps: {generationParameters.Steps}, Sampler: {generationParameters.Sampler}, "
-                        + $"CFG scale: {generationParameters.CfgScale}, Seed: {generationParameters.Seed}, "
-                        + $"Size: {generationParameters.Width}x{generationParameters.Height}, "
-                        + $"Model hash: {generationParameters.ModelHash}, Model: {generationParameters.ModelName}";
-                    var paramsChunk = BuildTextChunk("parameters", paramsData);
+                    var paramsChunk = BuildTextChunk("parameters", generationParameters.GetParametersText());
 
                     var paramsJson = JsonSerializer.Serialize(generationParameters, UnicodeJsonOptions);
                     var paramsJsonChunk = BuildTextChunk("parameters-json", paramsJson);
