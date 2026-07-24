@@ -1,3 +1,16 @@
 {
-  "updates": {}
+  "updates": {
+    "stable": {
+      "win-x64": {
+        "version": "2.16.2-skyt.1",
+        "releaseDate": "2026-07-24T12:08:34.720885\u002B00:00",
+        "channel": "stable",
+        "type": 1,
+        "url": "https://github.com/ItsSKYT/StabilityMatrix/releases/download/v2.16.2-skyt.1/StabilityMatrix-win-x64.zip",
+        "changelog": "https://raw.githubusercontent.com/ItsSKYT/StabilityMatrix/main/CHANGELOG.md",
+        "hashBlake3": "549fa145e54cd5f1063b8051435559a81d3846835722bf26a00bb9b57a182302",
+        "signature": "JTVbwckwt\u002BWzJISsd7Jq7ngPNO76wxNlMX6kcS656ScccwDH8SlNm/TCwo\u002BvmQ0hI1sJxab1UuBsglQ5ZQaaBg=="
+      }
+    }
+  }
 }
