@@ -501,6 +501,9 @@ public abstract partial class InferenceGenerationViewModelBase
                 .SelectMany(v => v!)
                 .ToList();
 
+            if (frames.Count == 0 && audio.Count > 0)
+                return await ProcessAudioOnlyOutputAsync(audio, args);
+
             return await ProcessFfmpegVideoOutputAsync(frames, audio, args, imageLabel: null);
         }
 
@@ -692,6 +695,37 @@ public abstract partial class InferenceGenerationViewModelBase
 
         return method.Equals("FfmpegMp4", StringComparison.OrdinalIgnoreCase)
             || method.Equals("Mp4", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<List<ImageSource>> ProcessAudioOnlyOutputAsync(
+        IReadOnlyCollection<ComfyImage> audioFiles,
+        ImageGenerationEventArgs args
+    )
+    {
+        var client = args.Client;
+        var outputDir = settingsManager.ImagesInferenceDirectory;
+        Directory.CreateDirectory(outputDir);
+        var results = new List<ImageSource>();
+
+        foreach (var audioFile in audioFiles)
+        {
+            await using var stream = await client.GetImageStreamAsync(audioFile);
+            var ext = Path.GetExtension(audioFile.FileName);
+            if (string.IsNullOrWhiteSpace(ext))
+                ext = ".flac";
+            var dest = Path.Combine(
+                outputDir,
+                $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}-ltx-audio-{Guid.NewGuid():N}{ext}"
+            );
+            await using (var fs = File.Create(dest))
+                await stream.CopyToAsync(fs);
+
+            var src = new ImageSource(dest) { Label = "Audio", HasAudio = true };
+            results.Add(src);
+            ImageGalleryCardViewModel.ImageSources.Add(src);
+        }
+
+        return results;
     }
 
     private async Task<List<ImageSource>> ProcessFfmpegVideoOutputAsync(

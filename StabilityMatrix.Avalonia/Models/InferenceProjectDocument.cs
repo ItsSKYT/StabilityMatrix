@@ -42,6 +42,12 @@ public class InferenceProjectDocument : ICloneable
                 InferenceImagePromptViewModel => InferenceProjectType.ImagePrompt,
                 InferenceKrea2ImageEditViewModel => InferenceProjectType.Krea2ImageEdit,
                 InferenceLtxvImageToVideoViewModel => InferenceProjectType.LtxvImageToVideo,
+                InferenceLtxvAudioToVideoViewModel => InferenceProjectType.LtxvAudioToVideo,
+                InferenceLtxvTextToAudioViewModel => InferenceProjectType.LtxvTextToAudio,
+                InferenceLtxvKeyframeInterpViewModel => InferenceProjectType.LtxvKeyframeInterp,
+                InferenceLtxvVideoRetakeViewModel => InferenceProjectType.LtxvVideoRetake,
+                InferenceLtxvLipDubViewModel => InferenceProjectType.LtxvLipDub,
+                InferenceLtxvHdrIcLoraViewModel => InferenceProjectType.LtxvHdrIcLora,
                 InferenceLtxvTextToVideoViewModel => InferenceProjectType.LtxvTextToVideo,
             },
             State = loadableModel.SaveStateToJsonObject()

@@ -878,6 +878,149 @@ public class ComfyNodeBuilder
         public required VAENodeConnection AudioVae { get; init; }
     }
 
+    public record LTXVAudioVAEEncode : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        public required AudioNodeConnection Audio { get; init; }
+        public required VAENodeConnection AudioVae { get; init; }
+    }
+
+    public record LTXVReferenceAudio
+        : ComfyTypedNodeBase<
+            ModelNodeConnection,
+            ConditioningNodeConnection,
+            ConditioningNodeConnection
+        >
+    {
+        public required ModelNodeConnection Model { get; init; }
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+        public required AudioNodeConnection ReferenceAudio { get; init; }
+        public required VAENodeConnection AudioVae { get; init; }
+
+        [Range(0.0d, 100.0d)]
+        public double IdentityGuidanceScale { get; init; } = 3.0;
+
+        [Range(0.0d, 1.0d)]
+        public double StartPercent { get; init; }
+
+        [Range(0.0d, 1.0d)]
+        public double EndPercent { get; init; } = 1.0;
+    }
+
+    public record LTXVAddGuide
+        : ComfyTypedNodeBase<
+            ConditioningNodeConnection,
+            ConditioningNodeConnection,
+            LatentNodeConnection
+        >
+    {
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+        public required LatentNodeConnection Latent { get; init; }
+        public required ImageNodeConnection Image { get; init; }
+
+        public int FrameIdx { get; init; }
+
+        [Range(0.0d, 10.0d)]
+        public double Strength { get; init; } = 1.0;
+
+        public ImageMaskConnection? AttentionMask { get; init; }
+        public IcLoraParametersNodeConnection? IcloraParameters { get; init; }
+    }
+
+    public record LTXVCropGuides
+        : ComfyTypedNodeBase<
+            ConditioningNodeConnection,
+            ConditioningNodeConnection,
+            LatentNodeConnection
+        >
+    {
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+        public required LatentNodeConnection Latent { get; init; }
+    }
+
+    public record GetICLoRAParameters : ComfyTypedNodeBase<IcLoraParametersNodeConnection>
+    {
+        public required ModelNodeConnection IcloraModel { get; init; }
+    }
+
+    public record LatentUpscaleModelLoader : ComfyTypedNodeBase<LatentUpscaleModelNodeConnection>
+    {
+        public required string ModelName { get; init; }
+    }
+
+    public record LTXVLatentUpsampler : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        public required LatentNodeConnection Samples { get; init; }
+        public required LatentUpscaleModelNodeConnection UpscaleModel { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+    }
+
+    public record LoadAudio : ComfyTypedNodeBase<AudioNodeConnection>
+    {
+        public required string Audio { get; init; }
+    }
+
+    public record LoadVideo : ComfyTypedNodeBase<VideoNodeConnection>
+    {
+        public required string File { get; init; }
+    }
+
+    public record GetVideoComponents
+        : ComfyTypedNodeBase<
+            ImageNodeConnection,
+            AudioNodeConnection,
+            StringNodeConnection,
+            StringNodeConnection
+        >
+    {
+        // outputs: images, audio, fps (float), bit_depth (int) — float/int mapped loosely
+        public required VideoNodeConnection Video { get; init; }
+    }
+
+    public record VideoSlice : ComfyTypedNodeBase<VideoNodeConnection>
+    {
+        protected override string ClassType => "Video Slice";
+
+        public required VideoNodeConnection Video { get; init; }
+
+        public double StartTime { get; init; }
+
+        public double Duration { get; init; }
+
+        public bool StrictDuration { get; init; }
+    }
+
+    public record TrimAudioDuration : ComfyTypedNodeBase<AudioNodeConnection>
+    {
+        public required AudioNodeConnection Audio { get; init; }
+
+        public double StartIndex { get; init; }
+
+        public double Duration { get; init; } = 60.0;
+    }
+
+    public static NamedComfyNode<ModelNodeConnection> LoraLoaderModelOnly(
+        string name,
+        ModelNodeConnection model,
+        string loraName,
+        double strengthModel = 1.0d
+    )
+    {
+        return new NamedComfyNode<ModelNodeConnection>(name)
+        {
+            ClassType = "LoraLoaderModelOnly",
+            Inputs = new Dictionary<string, object?>
+            {
+                ["model"] = model.Data,
+                ["lora_name"] = loraName,
+                ["strength_model"] = strengthModel,
+            },
+        };
+    }
+
     /// <summary>
     /// Text encoder for Qwen Image Edit that supports up to 3 input images
     /// </summary>
@@ -2055,6 +2198,12 @@ public class ComfyNodeBuilder
 
         /// <summary>Separated audio latent after LTX AV sampling.</summary>
         public LatentNodeConnection? LtxAudioLatent { get; set; }
+
+        /// <summary>Pre-encoded audio latent (A2V) instead of empty noise.</summary>
+        public LatentNodeConnection? LtxEncodedAudioLatent { get; set; }
+
+        /// <summary>Original waveform to mux instead of decoded latent (A2V fidelity).</summary>
+        public AudioNodeConnection? LtxPassthroughAudio { get; set; }
 
         public ModelNodeConnection GetRefinerOrBaseModel()
         {

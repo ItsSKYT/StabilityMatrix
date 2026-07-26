@@ -220,6 +220,12 @@ public class ComfyUI(
                     TargetRelativePaths = ["models/background_removal"],
                     ConfigDocumentPaths = ["background_removal"],
                 },
+                new SharedFolderLayoutRule // LTX / Hunyuan latent upscalers
+                {
+                    SourceTypes = [SharedFolderType.LatentUpscaleModels],
+                    TargetRelativePaths = ["models/latent_upscale_models"],
+                    ConfigDocumentPaths = ["latent_upscale_models"],
+                },
             ],
         };
 

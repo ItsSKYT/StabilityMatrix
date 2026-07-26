@@ -17,4 +17,10 @@ public enum InferenceProjectType
     Krea2ImageEdit,
     LtxvTextToVideo,
     LtxvImageToVideo,
+    LtxvAudioToVideo,
+    LtxvTextToAudio,
+    LtxvKeyframeInterp,
+    LtxvVideoRetake,
+    LtxvLipDub,
+    LtxvHdrIcLora,
 }

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Injectio.Attributes;
 using StabilityMatrix.Avalonia.Controls;
+using StabilityMatrix.Avalonia.Models;
 using StabilityMatrix.Avalonia.Models.Inference;
 using StabilityMatrix.Avalonia.Services;
 using StabilityMatrix.Avalonia.ViewModels.Base;
@@ -20,6 +21,12 @@ namespace StabilityMatrix.Avalonia.ViewModels.Inference;
 [RegisterTransient<LtxvSamplerCardViewModel>]
 public class LtxvSamplerCardViewModel : SamplerCardViewModel
 {
+    public LtxvAdvancedOptionsCardViewModel? AdvancedOptions { get; set; }
+
+    /// <summary>Optional second keyframe guide (end frame).</summary>
+    public ImageSource? ExtraGuideImage { get; set; }
+    public int ExtraGuideFrameIdx { get; set; }
+
     public LtxvSamplerCardViewModel(
         IInferenceClientManager clientManager,
         IServiceManager<ViewModelBase> vmFactory,
@@ -106,116 +113,35 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
             );
         }
 
-        if (e.Builder.Connections.UseLtxNativeAudio)
-            latent = ConcatEmptyAudioLatent(e, latent);
-
-        var guider = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.CFGGuider
+        var result = LtxvComfyPipeline.Sample(
+            new LtxvComfyPipeline.SampleArgs
             {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CFGGuider)),
+                EventArgs = e,
                 Model = model,
                 Positive = positive,
                 Negative = negative,
-                Cfg = CfgScale,
-            }
-        );
-
-        var scheduler = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.LTXVScheduler
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVScheduler)),
+                VideoLatent = latent,
+                VideoVae = e.Builder.Connections.GetDefaultVAE(),
+                Sampler = primarySampler,
                 Steps = Steps,
-                MaxShift = 2.05,
-                BaseShift = 0.95,
-                Stretch = true,
-                Terminal = 0.1,
-                Latent = latent,
-            }
-        );
-
-        var samplerSelect = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.KSamplerSelect
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.KSamplerSelect)),
-                SamplerName = primarySampler.Name,
-            }
-        );
-
-        var noise = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.RandomNoise
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.RandomNoise)),
-                NoiseSeed = e.Builder.Connections.Seed,
-            }
-        );
-
-        var sampler = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.SamplerCustomAdvanced
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.SamplerCustomAdvanced)),
-                Noise = noise.Output,
-                Guider = guider.Output,
-                Sampler = samplerSelect.Output,
-                Sigmas = scheduler.Output,
-                LatentImage = latent,
-            }
-        );
-
-        if (e.Builder.Connections.UseLtxNativeAudio)
-        {
-            var separated = e.Nodes.AddTypedNode(
-                new ComfyNodeBuilder.LTXVSeparateAVLatent
-                {
-                    Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVSeparateAVLatent)),
-                    AvLatent = sampler.Output1,
-                }
-            );
-            e.Builder.Connections.Primary = separated.Output1;
-            e.Builder.Connections.LtxAudioLatent = separated.Output2;
-        }
-        else
-        {
-            e.Builder.Connections.Primary = sampler.Output1;
-        }
-
-        e.Builder.Connections.VideoFrameCount = Length;
-    }
-
-    private LatentNodeConnection ConcatEmptyAudioLatent(
-        ModuleApplyStepEventArgs e,
-        LatentNodeConnection videoLatent
-    )
-    {
-        var audioVae =
-            e.Builder.Connections.LtxAudioVae
-            ?? throw new ValidationException(
-                "LTX Audio VAE not loaded. Place LTX23_audio_vae_bf16.safetensors in Checkpoints."
-            );
-
-        var fps = e.Builder.Connections.VideoOutputFps;
-        if (fps <= 0)
-            fps = 24;
-
-        var emptyAudio = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.LTXVEmptyLatentAudio
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVEmptyLatentAudio)),
-                FramesNumber = Length,
-                FrameRate = Math.Max(1, (int)Math.Round(fps)),
+                Cfg = CfgScale,
+                Seed = e.Builder.Connections.Seed,
+                Length = Length,
+                Fps = e.Builder.Connections.VideoOutputFps,
                 BatchSize = e.Builder.Connections.BatchSize,
-                AudioVae = audioVae,
+                UseNativeAudio = e.Builder.Connections.UseLtxNativeAudio,
+                AudioVae = e.Builder.Connections.LtxAudioVae,
+                EncodedAudioLatent = e.Builder.Connections.LtxEncodedAudioLatent,
+                PassthroughAudio = e.Builder.Connections.LtxPassthroughAudio,
+                Advanced = AdvancedOptions,
+                ExtraGuideImage = ExtraGuideImage,
+                ExtraGuideFrameIdx = ExtraGuideFrameIdx,
             }
         );
 
-        var concat = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.LTXVConcatAVLatent
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVConcatAVLatent)),
-                VideoLatent = videoLatent,
-                AudioLatent = emptyAudio.Output,
-            }
-        );
-
-        return concat.Output;
+        e.Builder.Connections.Primary = result.VideoLatent;
+        e.Builder.Connections.LtxAudioLatent = result.AudioLatent;
+        e.Builder.Connections.LtxPassthroughAudio = result.PassthroughAudio;
+        e.Builder.Connections.VideoFrameCount = Length;
     }
 }

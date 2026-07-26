@@ -87,6 +87,9 @@
         <StyleInclude Source="Controls/Inference/FaceDetailerCard.axaml" />
         <StyleInclude Source="Controls/Inference/BatchSizeCard.axaml" />
         <StyleInclude Source="Controls/Inference/SelectImageCard.axaml" />
+        <StyleInclude Source="Controls/Inference/SelectAudioCard.axaml" />
+        <StyleInclude Source="Controls/Inference/SelectVideoCard.axaml" />
+        <StyleInclude Source="Controls/Inference/LtxvAdvancedOptionsCard.axaml" />
         <StyleInclude Source="Controls/Inference/SharpenCard.axaml" />
         <StyleInclude Source="Controls/Inference/FreeUCard.axaml" />
         <StyleInclude Source="Controls/Inference/ControlNetCard.axaml" />

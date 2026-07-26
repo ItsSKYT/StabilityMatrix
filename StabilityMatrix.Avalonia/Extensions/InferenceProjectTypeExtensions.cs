@@ -24,6 +24,12 @@ public static class InferenceProjectTypeExtensions
             InferenceProjectType.Krea2ImageEdit => typeof(InferenceKrea2ImageEditViewModel),
             InferenceProjectType.LtxvTextToVideo => typeof(InferenceLtxvTextToVideoViewModel),
             InferenceProjectType.LtxvImageToVideo => typeof(InferenceLtxvImageToVideoViewModel),
+            InferenceProjectType.LtxvAudioToVideo => typeof(InferenceLtxvAudioToVideoViewModel),
+            InferenceProjectType.LtxvTextToAudio => typeof(InferenceLtxvTextToAudioViewModel),
+            InferenceProjectType.LtxvKeyframeInterp => typeof(InferenceLtxvKeyframeInterpViewModel),
+            InferenceProjectType.LtxvVideoRetake => typeof(InferenceLtxvVideoRetakeViewModel),
+            InferenceProjectType.LtxvLipDub => typeof(InferenceLtxvLipDubViewModel),
+            InferenceProjectType.LtxvHdrIcLora => typeof(InferenceLtxvHdrIcLoraViewModel),
             InferenceProjectType.Unknown => null,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };

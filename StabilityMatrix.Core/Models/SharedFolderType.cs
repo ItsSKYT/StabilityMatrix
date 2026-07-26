@@ -58,4 +58,7 @@ public enum SharedFolderType : ulong
 
     [Extensions.Description("Background Removal")]
     BackgroundRemoval = 1ul << 35,
+
+    [Extensions.Description("Latent Upscale Models")]
+    LatentUpscaleModels = 1ul << 36,
 }

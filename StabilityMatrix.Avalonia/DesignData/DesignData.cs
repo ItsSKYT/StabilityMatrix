@@ -1146,6 +1146,24 @@ The gallery images are often inpainted, but you will get something very similar 
     public static InferenceLtxvImageToVideoViewModel InferenceLtxvImageToVideoViewModel =>
         DialogFactory.Get<InferenceLtxvImageToVideoViewModel>();
 
+    public static InferenceLtxvAudioToVideoViewModel InferenceLtxvAudioToVideoViewModel =>
+        DialogFactory.Get<InferenceLtxvAudioToVideoViewModel>();
+
+    public static InferenceLtxvTextToAudioViewModel InferenceLtxvTextToAudioViewModel =>
+        DialogFactory.Get<InferenceLtxvTextToAudioViewModel>();
+
+    public static InferenceLtxvKeyframeInterpViewModel InferenceLtxvKeyframeInterpViewModel =>
+        DialogFactory.Get<InferenceLtxvKeyframeInterpViewModel>();
+
+    public static InferenceLtxvVideoRetakeViewModel InferenceLtxvVideoRetakeViewModel =>
+        DialogFactory.Get<InferenceLtxvVideoRetakeViewModel>();
+
+    public static InferenceLtxvLipDubViewModel InferenceLtxvLipDubViewModel =>
+        DialogFactory.Get<InferenceLtxvLipDubViewModel>();
+
+    public static InferenceLtxvHdrIcLoraViewModel InferenceLtxvHdrIcLoraViewModel =>
+        DialogFactory.Get<InferenceLtxvHdrIcLoraViewModel>();
+
     public static PackageImportViewModel PackageImportViewModel =>
         DialogFactory.Get<PackageImportViewModel>();
 

@@ -18,6 +18,10 @@ public class ImageMaskConnection : NodeConnectionBase;
 
 public class UpscaleModelNodeConnection : NodeConnectionBase;
 
+public class LatentUpscaleModelNodeConnection : NodeConnectionBase;
+
+public class IcLoraParametersNodeConnection : NodeConnectionBase;
+
 public class ModelNodeConnection : NodeConnectionBase;
 
 public class ConditioningNodeConnection : NodeConnectionBase;

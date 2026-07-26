@@ -57,6 +57,11 @@ public partial class VideoOutputSettingsCardViewModel
     [property: JsonIgnore]
     private bool supportsLtxNativeAudio;
 
+    /// <summary>Text-to-audio: skip video frame encode, only SaveAudio.</summary>
+    [ObservableProperty]
+    [property: JsonIgnore]
+    private bool audioOnlyMode;
+
     [JsonIgnore]
     public List<VideoOutputFormat> AvailableFormats { get; } =
         [VideoOutputFormat.FfmpegMp4, VideoOutputFormat.Webp];
@@ -182,6 +187,12 @@ public partial class VideoOutputSettingsCardViewModel
 
     public void ApplyStep(ModuleApplyStepEventArgs e)
     {
+        if (AudioOnlyMode)
+        {
+            ApplyLtxNativeAudioSave(e);
+            return;
+        }
+
         if (e.Builder.Connections.Primary is null)
             throw new ArgumentException("No Primary");
 
@@ -196,7 +207,7 @@ public partial class VideoOutputSettingsCardViewModel
             image => image
         );
 
-        if (UsesFfmpegEncode)
+        if (UsesFfmpegEncode && !AudioOnlyMode)
         {
             var saveFrames = e.Nodes.AddTypedNode(
                 new ComfyNodeBuilder.SaveImage
@@ -208,7 +219,7 @@ public partial class VideoOutputSettingsCardViewModel
             );
             e.Builder.Connections.OutputNodes.Add(saveFrames);
         }
-        else
+        else if (!UsesFfmpegEncode && !AudioOnlyMode)
         {
             var webpStep = e.Nodes.AddTypedNode(
                 new ComfyNodeBuilder.SaveAnimatedWEBP
@@ -225,10 +236,10 @@ public partial class VideoOutputSettingsCardViewModel
             e.Builder.Connections.OutputNodes.Add(webpStep);
         }
 
-        if (!AddAudio)
+        if (!AddAudio && !AudioOnlyMode)
             return;
 
-        if (UseLtxNativeAudio)
+        if (UseLtxNativeAudio || AudioOnlyMode)
         {
             ApplyLtxNativeAudioSave(e);
             return;
@@ -240,31 +251,41 @@ public partial class VideoOutputSettingsCardViewModel
 
     private static void ApplyLtxNativeAudioSave(ModuleApplyStepEventArgs e)
     {
-        var audioLatent =
-            e.Builder.Connections.LtxAudioLatent
-            ?? throw new ValidationException(
-                "LTX audio was selected but no audio latent was produced. Use an LTX Text/Image-to-Video tab."
-            );
-        var audioVae =
-            e.Builder.Connections.LtxAudioVae
-            ?? throw new ValidationException(
-                "LTX Audio VAE missing. Place LTX23_audio_vae_bf16.safetensors in Checkpoints."
-            );
+        AudioNodeConnection audioOut;
+        if (e.Builder.Connections.LtxPassthroughAudio is { } passthrough)
+        {
+            audioOut = passthrough;
+        }
+        else
+        {
+            var audioLatent =
+                e.Builder.Connections.LtxAudioLatent
+                ?? throw new ValidationException(
+                    "LTX audio was selected but no audio latent was produced. Use an LTX Text/Image-to-Video tab."
+                );
+            var audioVae =
+                e.Builder.Connections.LtxAudioVae
+                ?? throw new ValidationException(
+                    "LTX Audio VAE missing. Place LTX23_audio_vae_bf16.safetensors in Checkpoints."
+                );
 
-        var decoded = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.LTXVAudioVAEDecode
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVAudioVAEDecode)),
-                Samples = audioLatent,
-                AudioVae = audioVae,
-            }
-        );
+            audioOut = e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.LTXVAudioVAEDecode
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVAudioVAEDecode)),
+                        Samples = audioLatent,
+                        AudioVae = audioVae,
+                    }
+                )
+                .Output;
+        }
 
         var saveAudio = e.Nodes.AddTypedNode(
             new ComfyNodeBuilder.SaveAudio
             {
                 Name = e.Nodes.GetUniqueName("SaveAudio"),
-                Audio = decoded.Output,
+                Audio = audioOut,
                 FilenamePrefix = "temp/sm_vid_audio",
             }
         );

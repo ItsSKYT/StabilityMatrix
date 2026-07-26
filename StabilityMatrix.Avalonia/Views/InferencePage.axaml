@@ -137,6 +137,54 @@
                     </ui:CommandBarButton.IconSource>
                 </ui:CommandBarButton>
                 <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvAudioToVideo_OnClick"
+                    Label="LTXV Audio to Video"
+                    ToolTip.Tip="LTXV Audio-driven video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="MusicNote2" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvTextToAudio_OnClick"
+                    Label="LTXV Text to Audio"
+                    ToolTip.Tip="LTXV audio-only generation">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="Headphones" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvKeyframe_OnClick"
+                    Label="LTXV Keyframe Interp"
+                    ToolTip.Tip="Interpolate between keyframe images">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="FilmstripPlay" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvRetake_OnClick"
+                    Label="LTXV Video Retake"
+                    ToolTip.Tip="Regenerate a time window of a video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="ArrowSync" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvLipDub_OnClick"
+                    Label="LTXV LipDub"
+                    ToolTip.Tip="Lip dub with IC-LoRA + reference video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="PersonVoice" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvHdr_OnClick"
+                    Label="LTXV HDR IC-LoRA"
+                    ToolTip.Tip="HDR video-to-video (IC-LoRA in Extra Networks)">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="BrightnessHigh" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
                     Click="AddTabMenu_ImgToVideo_OnClick"
                     Label="SVD Image to Video"
                     ToolTip.Tip="SVD Image to Video">

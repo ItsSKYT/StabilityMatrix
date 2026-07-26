@@ -101,4 +101,34 @@ public partial class InferencePage : UserControlBase
     {
         (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvImageToVideo);
     }
+
+    private void AddTabMenu_LtxvAudioToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvAudioToVideo);
+    }
+
+    private void AddTabMenu_LtxvTextToAudio_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvTextToAudio);
+    }
+
+    private void AddTabMenu_LtxvKeyframe_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvKeyframeInterp);
+    }
+
+    private void AddTabMenu_LtxvRetake_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvVideoRetake);
+    }
+
+    private void AddTabMenu_LtxvLipDub_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvLipDub);
+    }
+
+    private void AddTabMenu_LtxvHdr_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvHdrIcLora);
+    }
 }

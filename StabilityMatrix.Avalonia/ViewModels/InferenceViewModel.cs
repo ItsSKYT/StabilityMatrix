@@ -736,6 +736,17 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
                 => scope.ServiceManager.Get<InferenceLtxvTextToVideoViewModel>(),
             InferenceProjectType.LtxvImageToVideo
                 => scope.ServiceManager.Get<InferenceLtxvImageToVideoViewModel>(),
+            InferenceProjectType.LtxvAudioToVideo
+                => scope.ServiceManager.Get<InferenceLtxvAudioToVideoViewModel>(),
+            InferenceProjectType.LtxvTextToAudio
+                => scope.ServiceManager.Get<InferenceLtxvTextToAudioViewModel>(),
+            InferenceProjectType.LtxvKeyframeInterp
+                => scope.ServiceManager.Get<InferenceLtxvKeyframeInterpViewModel>(),
+            InferenceProjectType.LtxvVideoRetake
+                => scope.ServiceManager.Get<InferenceLtxvVideoRetakeViewModel>(),
+            InferenceProjectType.LtxvLipDub => scope.ServiceManager.Get<InferenceLtxvLipDubViewModel>(),
+            InferenceProjectType.LtxvHdrIcLora
+                => scope.ServiceManager.Get<InferenceLtxvHdrIcLoraViewModel>(),
             _ => throw new InvalidOperationException($"Unsupported project type: {projectType}"),
         };
 

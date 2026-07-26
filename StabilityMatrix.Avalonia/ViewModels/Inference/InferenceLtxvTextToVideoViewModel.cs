@@ -32,7 +32,7 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
     public LtxvModelCardViewModel ModelCardViewModel { get; }
 
     [JsonPropertyName("Sampler")]
-    public SamplerCardViewModel SamplerCardViewModel { get; }
+    public LtxvSamplerCardViewModel SamplerCardViewModel { get; }
 
     [JsonPropertyName("BatchSize")]
     public BatchSizeCardViewModel BatchSizeCardViewModel { get; }
@@ -45,6 +45,9 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
 
     [JsonPropertyName("VideoOutput")]
     public VideoOutputSettingsCardViewModel VideoOutputSettingsCardViewModel { get; }
+
+    [JsonPropertyName("Advanced")]
+    public LtxvAdvancedOptionsCardViewModel AdvancedOptionsCardViewModel { get; }
 
     public InferenceLtxvTextToVideoViewModel(
         IServiceManager<ViewModelBase> vmFactory,
@@ -87,10 +90,32 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
             vm.SelectedAudioSource = VideoAudioSource.Ltx;
         });
 
+        AdvancedOptionsCardViewModel = vmFactory.Get<LtxvAdvancedOptionsCardViewModel>();
+        SamplerCardViewModel.AdvancedOptions = AdvancedOptionsCardViewModel;
+        AdvancedOptionsCardViewModel.PortraitPresetRequested += (_, preset) =>
+        {
+            switch (preset)
+            {
+                case "landscape":
+                    SamplerCardViewModel.Width = 768;
+                    SamplerCardViewModel.Height = 512;
+                    break;
+                case "portrait":
+                    SamplerCardViewModel.Width = 512;
+                    SamplerCardViewModel.Height = 768;
+                    break;
+                case "portrait1080":
+                    SamplerCardViewModel.Width = 1080;
+                    SamplerCardViewModel.Height = 1920;
+                    break;
+            }
+        };
+
         StackCardViewModel = vmFactory.Get<StackCardViewModel>();
         StackCardViewModel.AddCards(
             ModelCardViewModel,
             SamplerCardViewModel,
+            AdvancedOptionsCardViewModel,
             SeedCardViewModel,
             BatchSizeCardViewModel,
             VideoOutputSettingsCardViewModel

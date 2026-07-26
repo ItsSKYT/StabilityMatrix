@@ -1,0 +1,69 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:StabilityMatrix.Avalonia.Controls"
+    xmlns:controls1="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+    xmlns:inference="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Inference"
+    x:DataType="inference:LtxvAdvancedOptionsCardViewModel">
+    <Style Selector="controls|LtxvAdvancedOptionsCard">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <controls:Card Padding="8">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="DemiBold"
+                            Text="LTX Advanced" />
+
+                        <TextBlock Text="Resolution presets" Opacity="0.8" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button Command="{Binding ApplyPortraitPresetCommand}" CommandParameter="landscape" Content="768×512" />
+                            <Button Command="{Binding ApplyPortraitPresetCommand}" CommandParameter="portrait" Content="512×768" />
+                            <Button Command="{Binding ApplyPortraitPresetCommand}" CommandParameter="portrait1080" Content="1080×1920" />
+                        </StackPanel>
+
+                        <CheckBox Content="Two-stage spatial upscale" IsChecked="{Binding EnableTwoStage}"
+                                  ToolTip.Tip="Stage1 low-res + latent upscaler + distilled LoRA refine (recommended quality)." />
+                        <StackPanel IsVisible="{Binding ShowTwoStageSettings}" Spacing="6" Margin="16,0,0,0">
+                            <TextBox Watermark="Spatial upscaler filename (auto-detect if empty)"
+                                     Text="{Binding SpatialUpscalerName}" />
+                            <TextBox Watermark="Distilled LoRA filename (auto-detect if empty)"
+                                     Text="{Binding DistilledLoraName}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock VerticalAlignment="Center" Text="LoRA strength" />
+                                <controls1:NumberBox Value="{Binding DistilledLoraStrength}" Minimum="0" Maximum="2" SmallChange="0.05" Width="100" />
+                                <TextBlock VerticalAlignment="Center" Text="Stage2 steps" />
+                                <controls1:NumberBox Value="{Binding Stage2Steps}" Minimum="1" Maximum="30" SmallChange="1" Width="80" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <CheckBox Content="Temporal upscale (FPS)" IsChecked="{Binding EnableTemporalUpscale}"
+                                  ToolTip.Tip="Requires ltx temporal upscaler model in latent_upscale_models." />
+                        <TextBox IsVisible="{Binding ShowTemporalSettings}" Margin="16,0,0,0"
+                                 Watermark="Temporal upscaler filename" Text="{Binding TemporalUpscalerName}" />
+
+                        <CheckBox Content="Reference audio (ID-LoRA)" IsChecked="{Binding EnableReferenceAudio}" />
+                        <StackPanel IsVisible="{Binding ShowReferenceAudio}" Spacing="6" Margin="16,0,0,0">
+                            <controls:SelectAudioCard DataContext="{Binding ReferenceAudioCard}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock VerticalAlignment="Center" Text="Identity guidance" />
+                                <controls1:NumberBox Value="{Binding IdentityGuidanceScale}" Minimum="0" Maximum="20" SmallChange="0.1" Width="100" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <CheckBox Content="Guide image (AddGuide)" IsChecked="{Binding EnableGuideImage}" />
+                        <StackPanel IsVisible="{Binding ShowGuideImage}" Spacing="6" Margin="16,0,0,0">
+                            <controls:SelectImageCard DataContext="{Binding GuideImageCard}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock VerticalAlignment="Center" Text="Frame idx" />
+                                <controls1:NumberBox Value="{Binding GuideFrameIdx}" Minimum="-9999" Maximum="9999" Width="100" />
+                                <TextBlock VerticalAlignment="Center" Text="Strength" />
+                                <controls1:NumberBox Value="{Binding GuideStrength}" Minimum="0" Maximum="10" SmallChange="0.05" Width="100" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </controls:Card>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

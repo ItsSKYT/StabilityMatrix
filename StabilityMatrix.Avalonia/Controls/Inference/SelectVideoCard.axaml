@@ -1,0 +1,35 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:StabilityMatrix.Avalonia.Controls"
+    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:inference="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Inference"
+    x:DataType="inference:SelectVideoCardViewModel">
+    <Style Selector="controls|SelectVideoCard">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <controls:Card Padding="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{Binding DisplayName, TargetNullValue='No video selected'}"
+                            TextTrimming="CharacterEllipsis" />
+                        <Button
+                            Grid.Column="1"
+                            Command="{Binding SelectFromFilePickerCommand}"
+                            ToolTip.Tip="Select video file">
+                            <fluent:SymbolIcon Symbol="FolderOpen" />
+                        </Button>
+                        <Button
+                            Grid.Column="2"
+                            Command="{Binding ClearCommand}"
+                            IsVisible="{Binding HasFile}"
+                            ToolTip.Tip="Clear">
+                            <fluent:SymbolIcon Symbol="Dismiss" />
+                        </Button>
+                    </Grid>
+                </controls:Card>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>
