@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using DesktopNotifications;
+using FluentAvalonia.UI.Controls;
 using Injectio.Attributes;
 using StabilityMatrix.Avalonia.Extensions;
 using StabilityMatrix.Avalonia.Models;
@@ -187,6 +188,11 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
         if (!await ModelCardViewModel.ValidateModel())
             return;
 
+        if (
+            !await EnsureSafeAudioPathForQuantizedModelAsync()
+        )
+            return;
+
         var seedCard = StackCardViewModel.GetCard<SeedCardViewModel>();
         if (overrides is not { UseCurrentSeed: true } && seedCard.IsRandomizeEnabled)
             seedCard.GenerateNewSeed();
@@ -259,5 +265,49 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
         parameters = VideoOutputSettingsCardViewModel.SaveStateToParameters(parameters);
         parameters.Seed = (ulong)SeedCardViewModel.Seed;
         return parameters;
+    }
+
+    /// <summary>
+    /// INT4 ConvRot + joint LTXAV: CUDA convrot_w4a4_linear often Fatal-Aborts.
+    /// We auto-force the kitchen eager backend; offer MMAudio as an alternative.
+    /// </summary>
+    protected async Task<bool> EnsureSafeAudioPathForQuantizedModelAsync()
+    {
+        var useLtxAudio =
+            VideoOutputSettingsCardViewModel.AddAudio
+            && VideoOutputSettingsCardViewModel.SupportsLtxNativeAudio
+            && VideoOutputSettingsCardViewModel.SelectedAudioSource == VideoAudioSource.Ltx;
+
+        if (!useLtxAudio || !ModelCardViewModel.IsLikelyConvRotInt4Model())
+            return true;
+
+        var dialog = DialogHelper.CreateMarkdownDialog(
+            "Your model looks like **INT4 ConvRot**.\n\n"
+                + "Native **LTX audio** (joint `LTXAV`) often **hard-crashes** ComfyUI inside the CUDA "
+                + "`convrot_w4a4_linear` kernel.\n\n"
+                + "Stability Matrix will **stabilize** this run by forcing the **eager (PyTorch)** "
+                + "comfy-kitchen backend (slower, but usually avoids the abort).\n\n"
+                + "**Primary** = continue with LTX audio (stable/eager).\n"
+                + "**Secondary** = switch Audio Source to **MMAudio** (faster Foley path).\n"
+                + "Cancel = abort. Restart ComfyUI later to restore kitchen CUDA speed.",
+            "INT4 ConvRot + LTX audio"
+        );
+        dialog.IsPrimaryButtonEnabled = true;
+        dialog.PrimaryButtonText = "Continue (stable)";
+        dialog.SecondaryButtonText = "Use MMAudio";
+        dialog.CloseButtonText = "Cancel";
+        dialog.DefaultButton = ContentDialogButton.Primary;
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+            return true;
+
+        if (result == ContentDialogResult.Secondary)
+        {
+            VideoOutputSettingsCardViewModel.SelectedAudioSource = VideoAudioSource.MMAudio;
+            return true;
+        }
+
+        return false;
     }
 }

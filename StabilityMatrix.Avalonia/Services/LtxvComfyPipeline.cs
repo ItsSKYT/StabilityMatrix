@@ -29,6 +29,7 @@ public static class LtxvComfyPipeline
         public required double Fps { get; init; }
         public int BatchSize { get; init; } = 1;
         public bool UseNativeAudio { get; init; }
+        public bool ForceKitchenEager { get; init; }
         public VAENodeConnection? AudioVae { get; init; }
         public LatentNodeConnection? EncodedAudioLatent { get; init; }
         public AudioNodeConnection? PassthroughAudio { get; init; }
@@ -53,6 +54,27 @@ public static class LtxvComfyPipeline
         var negative = args.Negative;
         var latent = args.VideoLatent;
         var advanced = args.Advanced;
+
+        var needsKitchenEager =
+            args.ForceKitchenEager
+            || e.Builder.Connections.ForceKitchenEager
+            || (
+                e.Builder.Connections.LikelyConvRotInt4
+                && (args.UseNativeAudio || args.EncodedAudioLatent is not null || args.AudioOnly)
+            );
+
+        if (needsKitchenEager)
+        {
+            var eager = e.Nodes.AddTypedNode(
+                new ComfyNodeBuilder.SM_KitchenForceEager
+                {
+                    Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.SM_KitchenForceEager)),
+                    Model = model,
+                }
+            );
+            model = eager.Output;
+            e.Builder.Connections.ForceKitchenEager = true;
+        }
 
         if (advanced is { EnableGuideImage: true } && advanced.GuideImageCard.ImageSource is not null)
         {

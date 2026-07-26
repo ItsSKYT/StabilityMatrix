@@ -594,6 +594,8 @@ public class ComfyUI(
         CancellationToken cancellationToken = default
     )
     {
+        EnsureSmKitchenSafeCustomNode(installLocation);
+
         // Use the same Python version that was used for installation
         await SetupVenv(installLocation, pythonVersion: PyVersion.Parse(installedPackage.PythonVersion))
             .ConfigureAwait(false);
@@ -1234,6 +1236,68 @@ public class ComfyUI(
             )
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Ships a tiny custom node that can disable comfy_kitchen CUDA (ConvRot W4A4 abort workaround).
+    /// </summary>
+    private static void EnsureSmKitchenSafeCustomNode(string installLocation)
+    {
+        try
+        {
+            var dir = Path.Combine(installLocation, "custom_nodes", "sm_kitchen_safe");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "__init__.py");
+            File.WriteAllText(path, SmKitchenSafeCustomNodeSource);
+        }
+        catch (Exception e)
+        {
+            Logger.Warn(e, "Failed to write sm_kitchen_safe custom node");
+        }
+    }
+
+    private const string SmKitchenSafeCustomNodeSource =
+        """
+        # Stability Matrix helper: force comfy_kitchen eager path (avoid ConvRot CUDA abort).
+
+        NODE_CLASS_MAPPINGS = {}
+        NODE_DISPLAY_NAME_MAPPINGS = {}
+
+        try:
+            import comfy_kitchen as ck
+        except Exception:
+            ck = None
+
+
+        class SM_KitchenForceEager:
+            # Disable kitchen CUDA so ConvRot W4A4 uses the eager PyTorch backend.
+
+            @classmethod
+            def INPUT_TYPES(cls):
+                return {"required": {"model": ("MODEL",)}}
+
+            RETURN_TYPES = ("MODEL",)
+            FUNCTION = "apply"
+            CATEGORY = "stability_matrix"
+            OUTPUT_NODE = False
+
+            def apply(self, model):
+                if ck is None:
+                    print("[sm_kitchen_safe] comfy_kitchen not available; passthrough")
+                    return (model,)
+                try:
+                    ck.disable_backend("cuda")
+                    print(
+                        "[sm_kitchen_safe] disabled comfy_kitchen CUDA backend "
+                        "(convrot_w4a4 -> eager). Restart ComfyUI to restore CUDA speed."
+                    )
+                except Exception as exc:
+                    print(f"[sm_kitchen_safe] failed to disable CUDA backend: {exc}")
+                return (model,)
+
+
+        NODE_CLASS_MAPPINGS["SM_KitchenForceEager"] = SM_KitchenForceEager
+        NODE_DISPLAY_NAME_MAPPINGS["SM_KitchenForceEager"] = "SM Kitchen Force Eager"
+        """;
 
     private ImmutableDictionary<string, string> GetEnvVars(
         ImmutableDictionary<string, string> env,

@@ -130,6 +130,7 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
                 Fps = e.Builder.Connections.VideoOutputFps,
                 BatchSize = e.Builder.Connections.BatchSize,
                 UseNativeAudio = e.Builder.Connections.UseLtxNativeAudio,
+                ForceKitchenEager = e.Builder.Connections.ForceKitchenEager,
                 AudioVae = e.Builder.Connections.LtxAudioVae,
                 EncodedAudioLatent = e.Builder.Connections.LtxEncodedAudioLatent,
                 PassthroughAudio = e.Builder.Connections.LtxPassthroughAudio,

@@ -160,6 +160,20 @@ public partial class LtxvModelCardViewModel(
         return true;
     }
 
+    public bool IsLikelyConvRotInt4Model()
+    {
+        var name = SelectedModel?.FileName ?? SelectedModel?.RelativePath ?? string.Empty;
+        return name.Contains("convrot", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("conv_rot", StringComparison.OrdinalIgnoreCase)
+            || (
+                name.Contains("int4", StringComparison.OrdinalIgnoreCase)
+                && (
+                    name.Contains("w4a4", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("ltx", StringComparison.OrdinalIgnoreCase)
+                )
+            );
+    }
+
     public void ApplyStep(ModuleApplyStepEventArgs e)
     {
         var modelPath =
@@ -254,6 +268,13 @@ public partial class LtxvModelCardViewModel(
         e.Builder.Connections.Base.Clip = clip.Output;
         e.Builder.Connections.Base.VAE = vae.Output;
         e.Builder.Connections.PrimaryVAE = vae.Output;
+
+        if (IsLikelyConvRotInt4Model())
+            e.Builder.Connections.LikelyConvRotInt4 = true;
+
+        // INT4 ConvRot + joint LTXAV: CUDA kitchen kernel often aborts — force eager path.
+        if (e.Builder.Connections.UseLtxNativeAudio && e.Builder.Connections.LikelyConvRotInt4)
+            e.Builder.Connections.ForceKitchenEager = true;
 
         if (e.Builder.Connections.UseLtxNativeAudio)
         {

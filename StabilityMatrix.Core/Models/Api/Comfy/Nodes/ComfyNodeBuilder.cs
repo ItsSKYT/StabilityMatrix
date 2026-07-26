@@ -517,6 +517,15 @@ public class ComfyNodeBuilder
         public required string WeightDtype { get; init; }
     }
 
+    /// <summary>
+    /// Custom node (sm_kitchen_safe): disable comfy_kitchen CUDA so ConvRot uses eager.
+    /// </summary>
+    [TypedNodeOptions(Name = "SM_KitchenForceEager")]
+    public record SM_KitchenForceEager : ComfyTypedNodeBase<ModelNodeConnection>
+    {
+        public required ModelNodeConnection Model { get; init; }
+    }
+
     public record CLIPLoader : ComfyTypedNodeBase<ClipNodeConnection>
     {
         public required string ClipName { get; init; }
@@ -2192,6 +2201,15 @@ public class ComfyNodeBuilder
 
         /// <summary>When true, LTX sampler concatenates empty audio latent for joint AV generation.</summary>
         public bool UseLtxNativeAudio { get; set; }
+
+        /// <summary>
+        /// When true, insert SM_KitchenForceEager so ConvRot W4A4 uses PyTorch eager instead of CUDA
+        /// (avoids Fatal Aborted in joint LTXAV on INT4 ConvRot).
+        /// </summary>
+        public bool ForceKitchenEager { get; set; }
+
+        /// <summary>Selected UNET/ckpt looks like INT4 ConvRot (set by LTX model card).</summary>
+        public bool LikelyConvRotInt4 { get; set; }
 
         /// <summary>Audio VAE for LTX native decode (set by model card / sampler).</summary>
         public VAENodeConnection? LtxAudioVae { get; set; }

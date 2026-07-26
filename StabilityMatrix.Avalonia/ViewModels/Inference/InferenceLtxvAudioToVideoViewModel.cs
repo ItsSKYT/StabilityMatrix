@@ -79,6 +79,8 @@ public class InferenceLtxvAudioToVideoViewModel : InferenceLtxvTextToVideoViewMo
         builder.Connections.LtxEncodedAudioLatent = encoded.Output;
         builder.Connections.LtxPassthroughAudio = audio;
         builder.Connections.UseLtxNativeAudio = true;
+        if (builder.Connections.LikelyConvRotInt4)
+            builder.Connections.ForceKitchenEager = true;
 
         if (SelectImageCardViewModel.ImageSource is not null)
         {
