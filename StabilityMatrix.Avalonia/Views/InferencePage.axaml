@@ -89,6 +89,54 @@
                     </ui:CommandBarButton.IconSource>
                 </ui:CommandBarButton>
                 <ui:CommandBarButton
+                    Click="AddTabMenu_QwenImageEdit_OnClick"
+                    Label="Qwen Image Edit"
+                    ToolTip.Tip="Qwen Image Edit">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="ImageEdit" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_Flux2KleinImageEdit_OnClick"
+                    Label="Flux.2 Klein Image Edit"
+                    ToolTip.Tip="Flux.2 Klein Image Edit">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="ImageEdit" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_ImagePrompt_OnClick"
+                    Label="Image Prompt"
+                    ToolTip.Tip="Generate prompt from image (Florence2)">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="DocumentText" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_Krea2ImageEdit_OnClick"
+                    Label="Krea2 Image Edit"
+                    ToolTip.Tip="Krea2 Image Edit">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="ImageEdit" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvTextToVideo_OnClick"
+                    Label="LTXV Text to Video"
+                    ToolTip.Tip="LTXV 2.3 Text to Video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="Video" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_LtxvImageToVideo_OnClick"
+                    Label="LTXV Image to Video"
+                    ToolTip.Tip="LTXV 2.3 Image to Video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="VideoAdd" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
                     Click="AddTabMenu_ImgToVideo_OnClick"
                     Label="SVD Image to Video"
                     ToolTip.Tip="SVD Image to Video">

@@ -1128,6 +1128,24 @@ The gallery images are often inpainted, but you will get something very similar 
     public static InferenceWanImageToVideoViewModel InferenceWanImageToVideoViewModel =>
         DialogFactory.Get<InferenceWanImageToVideoViewModel>();
 
+    public static InferenceQwenImageEditViewModel InferenceQwenImageEditViewModel =>
+        DialogFactory.Get<InferenceQwenImageEditViewModel>();
+
+    public static InferenceFlux2KleinImageEditViewModel InferenceFlux2KleinImageEditViewModel =>
+        DialogFactory.Get<InferenceFlux2KleinImageEditViewModel>();
+
+    public static InferenceImagePromptViewModel InferenceImagePromptViewModel =>
+        DialogFactory.Get<InferenceImagePromptViewModel>();
+
+    public static InferenceKrea2ImageEditViewModel InferenceKrea2ImageEditViewModel =>
+        DialogFactory.Get<InferenceKrea2ImageEditViewModel>();
+
+    public static InferenceLtxvTextToVideoViewModel InferenceLtxvTextToVideoViewModel =>
+        DialogFactory.Get<InferenceLtxvTextToVideoViewModel>();
+
+    public static InferenceLtxvImageToVideoViewModel InferenceLtxvImageToVideoViewModel =>
+        DialogFactory.Get<InferenceLtxvImageToVideoViewModel>();
+
     public static PackageImportViewModel PackageImportViewModel =>
         DialogFactory.Get<PackageImportViewModel>();
 

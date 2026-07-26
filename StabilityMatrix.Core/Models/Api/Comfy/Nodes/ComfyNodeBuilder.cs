@@ -354,6 +354,12 @@ public class ComfyNodeBuilder
         public required ImageNodeConnection Images { get; init; }
     }
 
+    public record SaveImage : ComfyTypedNodeBase
+    {
+        public required ImageNodeConnection Images { get; init; }
+        public required string FilenamePrefix { get; init; }
+    }
+
     public record ImageSharpen : ComfyTypedNodeBase<ImageNodeConnection>
     {
         public required ImageNodeConnection Image { get; init; }
@@ -440,6 +446,65 @@ public class ComfyNodeBuilder
         public required bool Lossless { get; init; }
         public required int Quality { get; init; }
         public required string Method { get; init; }
+    }
+
+    public record CreateVideo : ComfyTypedNodeBase<VideoNodeConnection>
+    {
+        public required ImageNodeConnection Images { get; init; }
+        public required double Fps { get; init; }
+    }
+
+    public record SaveVideo : ComfyTypedNodeBase
+    {
+        public required VideoNodeConnection Video { get; init; }
+        public required string FilenamePrefix { get; init; }
+        public required string Format { get; init; }
+        public required string Codec { get; init; }
+    }
+
+    [TypedNodeOptions(
+        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
+    )]
+    public record MMAudioModelLoader : ComfyTypedNodeBase<MMAudioModelNodeConnection>
+    {
+        public required string MmaudioModel { get; init; }
+        public string BasePrecision { get; init; } = "fp16";
+    }
+
+    [TypedNodeOptions(
+        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
+    )]
+    public record MMAudioFeatureUtilsLoader : ComfyTypedNodeBase<MMAudioFeatureUtilsNodeConnection>
+    {
+        public required string VaeModel { get; init; }
+        public required string SynchformerModel { get; init; }
+        public required string ClipModel { get; init; }
+        public string Mode { get; init; } = "44k";
+        public string Precision { get; init; } = "fp16";
+    }
+
+    [TypedNodeOptions(
+        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
+    )]
+    public record MMAudioSampler : ComfyTypedNodeBase<AudioNodeConnection>
+    {
+        public required MMAudioModelNodeConnection MmaudioModel { get; init; }
+        public required MMAudioFeatureUtilsNodeConnection FeatureUtils { get; init; }
+        public required double Duration { get; init; }
+        public int Steps { get; init; } = 25;
+        public double Cfg { get; init; } = 4.5;
+        public required long Seed { get; init; }
+        public string Prompt { get; init; } = "";
+        public string NegativePrompt { get; init; } = "";
+        public bool MaskAwayClip { get; init; }
+        public bool ForceOffload { get; init; } = true;
+        public ImageNodeConnection? Images { get; init; }
+    }
+
+    public record SaveAudio : ComfyTypedNodeBase
+    {
+        public required AudioNodeConnection Audio { get; init; }
+        public required string FilenamePrefix { get; init; }
     }
 
     public record UNETLoader : ComfyTypedNodeBase<ModelNodeConnection>
@@ -676,6 +741,143 @@ public class ComfyNodeBuilder
         public double Shift { get; init; } = 3.1;
     }
 
+    public record EmptyLTXVLatentVideo : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        [Range(64, MaxResolution)]
+        public int Width { get; init; } = 768;
+
+        [Range(64, MaxResolution)]
+        public int Height { get; init; } = 512;
+
+        [Range(1, MaxResolution)]
+        public int Length { get; init; } = 97;
+
+        [Range(1, 4096)]
+        public int BatchSize { get; init; } = 1;
+    }
+
+    public record LTXVImgToVideo
+        : ComfyTypedNodeBase<
+            ConditioningNodeConnection,
+            ConditioningNodeConnection,
+            LatentNodeConnection
+        >
+    {
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+        public required ImageNodeConnection Image { get; init; }
+
+        [Range(64, MaxResolution)]
+        public int Width { get; init; } = 768;
+
+        [Range(64, MaxResolution)]
+        public int Height { get; init; } = 512;
+
+        [Range(9, MaxResolution)]
+        public int Length { get; init; } = 97;
+
+        [Range(1, 4096)]
+        public int BatchSize { get; init; } = 1;
+
+        [Range(0.0d, 1.0d)]
+        public double Strength { get; init; } = 1.0;
+    }
+
+    public record LTXVConditioning
+        : ComfyTypedNodeBase<ConditioningNodeConnection, ConditioningNodeConnection>
+    {
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+
+        [Range(0.0d, 1000.0d)]
+        public double FrameRate { get; init; } = 25.0;
+    }
+
+    public record ModelSamplingLTXV : ComfyTypedNodeBase<ModelNodeConnection>
+    {
+        public required ModelNodeConnection Model { get; init; }
+
+        [Range(0.0d, 100.0d)]
+        public double MaxShift { get; init; } = 2.05;
+
+        [Range(0.0d, 100.0d)]
+        public double BaseShift { get; init; } = 0.95;
+
+        public LatentNodeConnection? Latent { get; init; }
+    }
+
+    public record LTXVScheduler : ComfyTypedNodeBase<SigmasNodeConnection>
+    {
+        [Range(1, 10000)]
+        public int Steps { get; init; } = 20;
+
+        [Range(0.0d, 100.0d)]
+        public double MaxShift { get; init; } = 2.05;
+
+        [Range(0.0d, 100.0d)]
+        public double BaseShift { get; init; } = 0.95;
+
+        public bool Stretch { get; init; } = true;
+
+        [Range(0.0d, 0.99d)]
+        public double Terminal { get; init; } = 0.1;
+
+        public LatentNodeConnection? Latent { get; init; }
+    }
+
+    public record LTXVPreprocess : ComfyTypedNodeBase<ImageNodeConnection>
+    {
+        public required ImageNodeConnection Image { get; init; }
+
+        [Range(0, 100)]
+        public int ImgCompression { get; init; } = 35;
+    }
+
+    public record LTXAVTextEncoderLoader : ComfyTypedNodeBase<ClipNodeConnection>
+    {
+        public required string TextEncoder { get; init; }
+        public required string CkptName { get; init; }
+        public string Device { get; init; } = "default";
+    }
+
+    public record LTXVAudioVAELoader : ComfyTypedNodeBase<VAENodeConnection>
+    {
+        public required string CkptName { get; init; }
+    }
+
+    public record LTXVEmptyLatentAudio : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        [Range(1, 1000)]
+        public int FramesNumber { get; init; } = 97;
+
+        [Range(1, 1000)]
+        public int FrameRate { get; init; } = 25;
+
+        [Range(1, 4096)]
+        public int BatchSize { get; init; } = 1;
+
+        public required VAENodeConnection AudioVae { get; init; }
+    }
+
+    public record LTXVConcatAVLatent : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        public required LatentNodeConnection VideoLatent { get; init; }
+        public required LatentNodeConnection AudioLatent { get; init; }
+    }
+
+    public record LTXVSeparateAVLatent
+        : ComfyTypedNodeBase<LatentNodeConnection, LatentNodeConnection>
+    {
+        public required LatentNodeConnection AvLatent { get; init; }
+    }
+
+    public record LTXVAudioVAEDecode : ComfyTypedNodeBase<AudioNodeConnection>
+    {
+        public required LatentNodeConnection Samples { get; init; }
+        public required VAENodeConnection AudioVae { get; init; }
+    }
+
     /// <summary>
     /// Text encoder for Qwen Image Edit that supports up to 3 input images
     /// </summary>
@@ -687,6 +889,35 @@ public class ComfyNodeBuilder
         public ImageNodeConnection? Image2 { get; init; }
         public ImageNodeConnection? Image3 { get; init; }
         public required string Prompt { get; init; }
+    }
+
+    /// <summary>
+    /// Krea 2 image-edit encode with layer rebalance (ComfyUI-Conditioning-Rebalance).
+    /// Vision tokens go through the krea2 CLIP; no VAE in the encode path.
+    /// </summary>
+    [TypedNodeOptions(
+        Name = "Krea2EditRebalance",
+        RequiredExtensions = ["https://github.com/nova452/ComfyUI-ConditioningKrea2Rebalance"]
+    )]
+    public record Krea2EditRebalance : ComfyTypedNodeBase<ConditioningNodeConnection>
+    {
+        public required string Text { get; init; }
+        public required ClipNodeConnection Clip { get; init; }
+
+        [Range(-2.0d, 2.0d)]
+        public double Steering { get; init; } = 1.0;
+
+        public double LayerMultiplier { get; init; } = 1.0;
+        public bool EnableStep { get; init; } = true;
+
+        public ImageNodeConnection? Image1 { get; init; }
+        public string Image1Tokens { get; init; } = "normal";
+        public ImageNodeConnection? Image2 { get; init; }
+        public string? Image2Tokens { get; init; }
+        public ImageNodeConnection? Image3 { get; init; }
+        public string? Image3Tokens { get; init; }
+        public ImageNodeConnection? Image4 { get; init; }
+        public string? Image4Tokens { get; init; }
     }
 
     public record RescaleCFG : ComfyTypedNodeBase<ModelNodeConnection>
@@ -759,6 +990,46 @@ public class ComfyNodeBuilder
     public record UnetLoaderGGUF : ComfyTypedNodeBase<ModelNodeConnection>
     {
         public required string UnetName { get; init; }
+    }
+
+    [TypedNodeOptions(
+        Name = "DownloadAndLoadFlorence2Model",
+        RequiredExtensions = ["https://github.com/kijai/ComfyUI-Florence2"]
+    )]
+    public record DownloadAndLoadFlorence2Model : ComfyTypedNodeBase<Florence2ModelNodeConnection>
+    {
+        public required string Model { get; init; }
+        public string Precision { get; init; } = "fp16";
+    }
+
+    [TypedNodeOptions(
+        Name = "Florence2Run",
+        RequiredExtensions = ["https://github.com/kijai/ComfyUI-Florence2"]
+    )]
+    public record Florence2Run
+        : ComfyTypedNodeBase<
+            ImageNodeConnection,
+            ImageMaskConnection,
+            StringNodeConnection,
+            StringNodeConnection
+        >
+    {
+        public required ImageNodeConnection Image { get; init; }
+        public required Florence2ModelNodeConnection Florence2Model { get; init; }
+        public string TextInput { get; init; } = "";
+        public required string Task { get; init; }
+        public bool FillMask { get; init; } = true;
+        public bool KeepModelLoaded { get; init; } = false;
+        public int MaxNewTokens { get; init; } = 1024;
+        public int NumBeams { get; init; } = 3;
+        public bool DoSample { get; init; } = true;
+        public string OutputMaskSelect { get; init; } = "";
+        public ulong Seed { get; init; } = 1;
+    }
+
+    public record PreviewAny : ComfyTypedNodeBase
+    {
+        public required StringNodeConnection Source { get; init; }
     }
 
     [TypedNodeOptions(
@@ -1769,6 +2040,21 @@ public class ComfyNodeBuilder
         public List<NamedComfyNode> OutputNodes { get; } = new();
 
         public IEnumerable<string> OutputNodeNames => OutputNodes.Select(n => n.Name);
+
+        /// <summary>Frame count for video outputs (set by LTX/Wan samplers).</summary>
+        public int VideoFrameCount { get; set; }
+
+        /// <summary>FPS for LTX conditioning / empty audio latent.</summary>
+        public double VideoOutputFps { get; set; }
+
+        /// <summary>When true, LTX sampler concatenates empty audio latent for joint AV generation.</summary>
+        public bool UseLtxNativeAudio { get; set; }
+
+        /// <summary>Audio VAE for LTX native decode (set by model card / sampler).</summary>
+        public VAENodeConnection? LtxAudioVae { get; set; }
+
+        /// <summary>Separated audio latent after LTX AV sampling.</summary>
+        public LatentNodeConnection? LtxAudioLatent { get; set; }
 
         public ModelNodeConnection GetRefinerOrBaseModel()
         {

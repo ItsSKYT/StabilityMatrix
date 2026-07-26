@@ -412,6 +412,38 @@ public abstract partial class InferenceGenerationViewModelBase
                 return;
             }
 
+            if (args.Parameters?.AddVideoAudio == true)
+            {
+                args.AudioOutputs = await client.GetAudioForExecutedPromptAsync(
+                    promptTask.Id,
+                    cancellationToken
+                );
+
+                // Some Comfy builds put SaveAudio results under images — scavenge audio extensions.
+                foreach (var (nodeKey, imgs) in imageOutputs)
+                {
+                    if (imgs is null || imgs.Count == 0)
+                        continue;
+
+                    var audioImgs = imgs.Where(i => IsAudioFileName(i.FileName)).ToList();
+                    if (audioImgs.Count == 0)
+                        continue;
+
+                    args.AudioOutputs ??= new Dictionary<string, List<ComfyImage>?>();
+                    if (
+                        args.AudioOutputs.TryGetValue(nodeKey, out var existing)
+                        && existing is { Count: > 0 }
+                    )
+                    {
+                        existing.AddRange(audioImgs);
+                    }
+                    else
+                    {
+                        args.AudioOutputs[nodeKey] = audioImgs;
+                    }
+                }
+            }
+
             // Disable cancellation
             await promptInterrupt.DisposeAsync();
 
@@ -456,6 +488,22 @@ public abstract partial class InferenceGenerationViewModelBase
         ImageGenerationEventArgs args
     )
     {
+        if (ShouldEncodeWithFfmpeg(args.Parameters))
+        {
+            var frames = images
+                .Values.Where(v => v is { Count: > 0 })
+                .SelectMany(v => v!)
+                .Where(img => !IsAudioFileName(img.FileName))
+                .ToList();
+
+            var audio = (args.AudioOutputs?.Values ?? Enumerable.Empty<List<ComfyImage>?>())
+                .Where(v => v is { Count: > 0 })
+                .SelectMany(v => v!)
+                .ToList();
+
+            return await ProcessFfmpegVideoOutputAsync(frames, audio, args, imageLabel: null);
+        }
+
         var results = new List<ImageSource>();
 
         foreach (var (nodeName, imageList) in images)
@@ -577,13 +625,20 @@ public abstract partial class InferenceGenerationViewModelBase
                     fileExtension: Path.GetExtension(comfyImage.FileName).Replace(".", "")
                 );
 
-                outputImages.Add(new ImageSource(filePath) { Label = imageLabel });
+                var imageSource = new ImageSource(filePath) { Label = imageLabel };
+
+                if (IsVideoFileName(comfyImage.FileName))
+                {
+                    await TryAttachVideoThumbnailAsync(imageSource);
+                }
+
+                outputImages.Add(imageSource);
                 EventManager.Instance.OnImageFileAdded(filePath);
             }
         }
 
-        // Download all images to make grid, if multiple
-        if (outputImages.Count > 1)
+        // Download all images to make grid, if multiple (skip for video outputs)
+        if (outputImages.Count > 1 && !images.Any(img => IsVideoFileName(img.FileName)))
         {
             var loadedImages = outputImagesBytes.Select(SKImage.FromEncodedData).ToImmutableArray();
 
@@ -612,12 +667,315 @@ public abstract partial class InferenceGenerationViewModelBase
         foreach (var img in outputImages)
         {
             // Preload
-            await img.GetBitmapAsync();
+            await img.GetOrRefreshTemplateKeyAsync();
+            if (img.TemplateKey is not ImageSourceTemplateType.Video)
+            {
+                await img.GetBitmapAsync();
+            }
             // Add images
             ImageGalleryCardViewModel.ImageSources.Add(img);
         }
 
         return outputImages;
+    }
+
+    private static bool ShouldEncodeWithFfmpeg(GenerationParameters? parameters)
+    {
+        if (parameters is null)
+            return false;
+
+        if (parameters.AddVideoAudio)
+            return true;
+
+        if (parameters.VideoOutputMethod is not { } method)
+            return false;
+
+        return method.Equals("FfmpegMp4", StringComparison.OrdinalIgnoreCase)
+            || method.Equals("Mp4", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<List<ImageSource>> ProcessFfmpegVideoOutputAsync(
+        IReadOnlyCollection<ComfyImage> images,
+        IReadOnlyCollection<ComfyImage> audioFiles,
+        ImageGenerationEventArgs args,
+        string? imageLabel
+    )
+    {
+        var client = args.Client;
+        var parameters = args.Parameters!;
+        var project = args.Project!;
+        project.TryUpdateModel<SeedCardModel>("Seed", model => model with { IsRandomizeEnabled = false });
+
+        var frameDir = Path.Combine(Path.GetTempPath(), $"sm-frames-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(frameDir);
+        var framePaths = new List<string>();
+        string? audioPath = null;
+
+        try
+        {
+            foreach (var (i, comfyImage) in images.Enumerate())
+            {
+                Logger.Debug("Downloading video frame: {FileName}", comfyImage.FileName);
+                await using var imageStream = await client.GetImageStreamAsync(comfyImage);
+                var ext = Path.GetExtension(comfyImage.FileName);
+                if (string.IsNullOrWhiteSpace(ext))
+                    ext = ".png";
+
+                var framePath = Path.Combine(frameDir, $"frame_{i + 1:D5}{ext}");
+                await using (var fs = File.Create(framePath))
+                {
+                    await imageStream.CopyToAsync(fs);
+                }
+
+                framePaths.Add(framePath);
+            }
+
+            if (audioFiles.Count > 0)
+            {
+                var audioFile = audioFiles.First();
+                Logger.Debug("Downloading video audio: {FileName}", audioFile.FileName);
+                await using var audioStream = await client.GetImageStreamAsync(audioFile);
+                var audioExt = Path.GetExtension(audioFile.FileName);
+                if (string.IsNullOrWhiteSpace(audioExt))
+                    audioExt = ".flac";
+                audioPath = Path.Combine(frameDir, $"audio{audioExt}");
+                await using (var fs = File.Create(audioPath))
+                {
+                    await audioStream.CopyToAsync(fs);
+                }
+            }
+            else if (parameters.AddVideoAudio)
+            {
+                var sourceHint =
+                    parameters.VideoAudioSource?.Equals("Ltx", StringComparison.OrdinalIgnoreCase) == true
+                        ? "LTX Audio VAE (LTX23_audio_vae_bf16.safetensors in Checkpoints)"
+                        : "ComfyUI-MMAudio + models/mmaudio";
+                notificationService.Show(
+                    "Add Audio",
+                    $"Add Audio was enabled but no audio was returned. Check {sourceHint}.",
+                    NotificationType.Warning
+                );
+            }
+
+            var encoder =
+                App.Services?.GetService(typeof(IFfmpegVideoEncoder)) as IFfmpegVideoEncoder
+                ?? throw new InvalidOperationException("IFfmpegVideoEncoder not registered");
+
+            var stagingBase = Path.Combine(frameDir, "encoded");
+            var encodedPath = await encoder.EncodeFramesAsync(
+                framePaths,
+                stagingBase,
+                parameters.OutputFps > 0 ? parameters.OutputFps : 24,
+                parameters.Lossless,
+                parameters.VideoQuality > 0 ? parameters.VideoQuality : 90
+            );
+
+            if (encodedPath is null || !File.Exists(encodedPath))
+            {
+                notificationService.Show(
+                    "FFmpeg encode failed",
+                    "Could not encode video with FFmpeg/NVENC. Falling back to frame images.",
+                    NotificationType.Warning
+                );
+
+                var fallbackArgs = new ImageGenerationEventArgs
+                {
+                    Client = args.Client,
+                    Nodes = args.Nodes,
+                    OutputNodeNames = args.OutputNodeNames,
+                    BatchIndex = args.BatchIndex,
+                    Parameters = parameters with { VideoOutputMethod = "Webp", AddVideoAudio = false },
+                    Project = args.Project,
+                    ClearOutputImages = false,
+                    FilesToTransfer = args.FilesToTransfer,
+                };
+                return await ProcessOutputImages(images, fallbackArgs, imageLabel);
+            }
+
+            var hasAudioTrack = false;
+            if (audioPath is not null)
+            {
+                var muxedPath = Path.Combine(frameDir, "muxed.mp4");
+                var muxed = await encoder.MuxAudioAsync(encodedPath, audioPath, muxedPath);
+                if (muxed is not null)
+                {
+                    encodedPath = muxed;
+                    hasAudioTrack = true;
+                }
+                else
+                {
+                    notificationService.Show(
+                        "Audio mux failed",
+                        "Video saved without audio track.",
+                        NotificationType.Warning
+                    );
+                }
+            }
+
+            await using var encodedStream = File.OpenRead(encodedPath);
+            var extOut = Path.GetExtension(encodedPath).TrimStart('.');
+            var filePath = await WriteOutputImageAsync(encodedStream, args, fileExtension: extOut);
+
+            var imageSource = new ImageSource(filePath) { Label = imageLabel, HasAudio = hasAudioTrack };
+            if (IsVideoFileName(filePath.Name))
+            {
+                await TryAttachVideoThumbnailAsync(imageSource);
+
+                // Fallback still: use first encoded frame so gallery isn't blank if FFmpeg thumbs fail
+                if (imageSource.Bitmap is null && framePaths.Count > 0 && File.Exists(framePaths[0]))
+                {
+                    try
+                    {
+                        var videoDir = Path.GetDirectoryName(filePath.FullPath);
+                        if (!string.IsNullOrEmpty(videoDir))
+                        {
+                            var thumbsDir = Path.Combine(videoDir, ".sm-thumbs");
+                            Directory.CreateDirectory(thumbsDir);
+                            var fallbackThumb = Path.Combine(
+                                thumbsDir,
+                                Path.GetFileNameWithoutExtension(filePath.Name)
+                                    + "_frame"
+                                    + Path.GetExtension(framePaths[0])
+                            );
+                            File.Copy(framePaths[0], fallbackThumb, overwrite: true);
+                            imageSource.ThumbnailFile = new FilePath(fallbackThumb);
+                        }
+
+                        await using var frameStream = File.OpenRead(framePaths[0]);
+                        imageSource.Bitmap = new global::Avalonia.Media.Imaging.Bitmap(frameStream);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Warn(e, "Failed to attach fallback frame thumbnail");
+                    }
+                }
+            }
+            else if (filePath.Extension.Equals(".webp", StringComparison.OrdinalIgnoreCase))
+            {
+                await imageSource.GetOrRefreshTemplateKeyAsync();
+            }
+
+            await imageSource.GetOrRefreshTemplateKeyAsync();
+            if (imageSource.TemplateKey is not ImageSourceTemplateType.Video)
+            {
+                await imageSource.GetBitmapAsync();
+            }
+
+            ImageGalleryCardViewModel.ImageSources.Add(imageSource);
+            EventManager.Instance.OnImageFileAdded(filePath);
+
+            if (parameters is not null)
+            {
+                try
+                {
+                    await VideoSidecarMetadata.WriteAsync(filePath, parameters, args.Project);
+                }
+                catch (Exception e)
+                {
+                    Logger.Warn(e, "Failed to write video sidecar metadata");
+                }
+            }
+
+            await TryDeleteComfyTempOutputsAsync(client, images, audioFiles);
+
+            return [imageSource];
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(frameDir, recursive: true);
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+    }
+
+    private static async Task TryDeleteComfyTempOutputsAsync(
+        ComfyClient client,
+        IReadOnlyCollection<ComfyImage> frames,
+        IReadOnlyCollection<ComfyImage> audioFiles
+    )
+    {
+        if (client.OutputImagesDir is not { } outputDir)
+            return;
+
+        foreach (var file in frames.Concat(audioFiles))
+        {
+            try
+            {
+                if (!IsComfyTempVideoOutput(file.FileName))
+                    continue;
+
+                var path = file.ToFilePath(outputDir);
+                if (path.Exists)
+                    await path.DeleteAsync();
+            }
+            catch (Exception e)
+            {
+                Logger.Warn(e, "Failed to delete temp Comfy video output {File}", file.FileName);
+            }
+        }
+    }
+
+    private static bool IsComfyTempVideoOutput(string fileName)
+    {
+        return fileName.StartsWith("InferenceVideoFrames", StringComparison.OrdinalIgnoreCase)
+            || fileName.StartsWith("InferenceVideoAudio", StringComparison.OrdinalIgnoreCase)
+            || fileName.Contains("sm_vid_frames", StringComparison.OrdinalIgnoreCase)
+            || fileName.Contains("sm_vid_audio", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAudioFileName(string fileName) =>
+        fileName.EndsWith(".flac", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".opus", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsVideoFileName(string fileName) =>
+        fileName.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".webm", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".mov", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".mkv", StringComparison.OrdinalIgnoreCase)
+        || fileName.EndsWith(".avi", StringComparison.OrdinalIgnoreCase);
+
+    private static async Task TryAttachVideoThumbnailAsync(ImageSource imageSource)
+    {
+        if (imageSource.LocalFile?.FullPath is not { } videoPath || App.Services is null)
+            return;
+
+        try
+        {
+            var thumbnailService =
+                App.Services.GetService(typeof(IVideoThumbnailService)) as IVideoThumbnailService;
+            if (thumbnailService is null)
+                return;
+
+            var thumbPath = await thumbnailService.GetOrCreateThumbnailAsync(videoPath);
+            if (thumbPath is not null && File.Exists(thumbPath))
+            {
+                imageSource.ThumbnailFile = new FilePath(thumbPath);
+                await using var stream = File.OpenRead(thumbPath);
+                imageSource.Bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
+            }
+
+            var previewPath = await thumbnailService.GetOrCreateAnimatedPreviewAsync(videoPath);
+            if (previewPath is not null && File.Exists(previewPath))
+            {
+                imageSource.PlaybackFile = new FilePath(previewPath);
+            }
+
+            if (!imageSource.HasAudio)
+            {
+                imageSource.HasAudio = await thumbnailService.HasAudioStreamAsync(videoPath);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Warn(e, "Failed to create video thumbnail for {Path}", videoPath);
+        }
     }
 
     /// <summary>
@@ -952,7 +1310,7 @@ public abstract partial class InferenceGenerationViewModelBase
     /// <summary>
     /// Shows a dialog and return false if prompt required extensions not installed
     /// </summary>
-    private async Task<bool> CheckPromptExtensionsInstalled(NodeDictionary nodeDictionary)
+    protected async Task<bool> CheckPromptExtensionsInstalled(NodeDictionary nodeDictionary)
     {
         // Get prompt required extensions
         // Just static for now but could do manifest lookup when we support custom workflows
@@ -976,9 +1334,11 @@ public abstract partial class InferenceGenerationViewModelBase
             )
         ).ToList();
 
+        // Normalize .git suffix — git remotes often end with .git, required URLs usually do not
         var localExtensionsByGitUrl = localExtensions
             .Where(ext => ext.GitRepositoryUrl is not null)
-            .ToDictionary(ext => ext.GitRepositoryUrl!, ext => ext);
+            .GroupBy(ext => ext.GitRepositoryUrl!.StripEnd(".git").TrimEnd('/'), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var requiredExtensionReferences = requiredExtensionSpecifiers
             .Select(specifier => specifier.Name)
@@ -991,7 +1351,8 @@ public abstract partial class InferenceGenerationViewModelBase
         // Check missing extensions and out of date extensions
         foreach (var specifier in requiredExtensionSpecifiers)
         {
-            if (!localExtensionsByGitUrl.TryGetValue(specifier.Name, out var localExtension))
+            var specifierKey = specifier.Name.StripEnd(".git").TrimEnd('/');
+            if (!localExtensionsByGitUrl.TryGetValue(specifierKey, out var localExtension))
             {
                 missingExtensions.Add(specifier);
                 continue;
@@ -1190,6 +1551,7 @@ public abstract partial class InferenceGenerationViewModelBase
         public InferenceProjectDocument? Project { get; init; }
         public bool ClearOutputImages { get; init; } = true;
         public List<(string SourcePath, string DestinationRelativePath)> FilesToTransfer { get; init; } = [];
+        public Dictionary<string, List<ComfyImage>?>? AudioOutputs { get; set; }
     }
 
     public class BuildPromptEventArgs : EventArgs

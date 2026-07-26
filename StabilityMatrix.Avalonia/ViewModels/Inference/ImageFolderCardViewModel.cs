@@ -45,6 +45,7 @@ public partial class ImageFolderCardViewModel : DisposableViewModelBase
     private readonly ISettingsManager settingsManager;
     private readonly INotificationService notificationService;
     private readonly IServiceManager<ViewModelBase> vmFactory;
+    private readonly IVideoThumbnailService videoThumbnailService;
 
     [ObservableProperty]
     private string? searchQuery;
@@ -63,7 +64,8 @@ public partial class ImageFolderCardViewModel : DisposableViewModelBase
         IImageIndexService imageIndexService,
         ISettingsManager settingsManager,
         INotificationService notificationService,
-        IServiceManager<ViewModelBase> vmFactory
+        IServiceManager<ViewModelBase> vmFactory,
+        IVideoThumbnailService videoThumbnailService
     )
     {
         this.logger = logger;
@@ -71,6 +73,7 @@ public partial class ImageFolderCardViewModel : DisposableViewModelBase
         this.settingsManager = settingsManager;
         this.notificationService = notificationService;
         this.vmFactory = vmFactory;
+        this.videoThumbnailService = videoThumbnailService;
 
         var searcher = new ImageSearcher();
 
@@ -183,8 +186,37 @@ public partial class ImageFolderCardViewModel : DisposableViewModelBase
 
         var image = new ImageSource(imageFile);
 
-        // Preload
-        await image.GetBitmapAsync();
+        if (item.IsVideo)
+        {
+            try
+            {
+                var preview = await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(imageFile);
+                if (preview is not null)
+                    image.PlaybackFile = new FilePath(preview);
+
+                var thumb =
+                    videoThumbnailService.GetExistingThumbnailPath(imageFile)
+                    ?? await videoThumbnailService.GetOrCreateThumbnailAsync(imageFile);
+                if (thumb is not null && File.Exists(thumb))
+                {
+                    image.ThumbnailFile = new FilePath(thumb);
+                    await using var stream = File.OpenRead(thumb);
+                    image.Bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
+                }
+
+                image.HasAudio = await videoThumbnailService.HasAudioStreamAsync(imageFile);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to prepare video preview");
+            }
+        }
+        else
+        {
+            await image.GetBitmapAsync();
+        }
+
+        await image.GetOrRefreshTemplateKeyAsync();
 
         var vm = vmFactory.Get<ImageViewerViewModel>();
         vm.ImageSource = image;
@@ -209,16 +241,27 @@ public partial class ImageFolderCardViewModel : DisposableViewModelBase
                             var newImage = LocalImages[newIndex];
                             var newImageSource = new ImageSource(newImage.AbsolutePath);
 
-                            // Preload
-                            await newImageSource.GetBitmapAsync();
-                            await newImageSource.GetOrRefreshTemplateKeyAsync();
+                            if (newImage.IsVideo)
+                            {
+                                var preview = await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(
+                                    newImage.AbsolutePath
+                                );
+                                if (preview is not null)
+                                    newImageSource.PlaybackFile = new FilePath(preview);
 
-                            // var oldImageSource = sender.ImageSource;
+                                newImageSource.HasAudio = await videoThumbnailService.HasAudioStreamAsync(
+                                    newImage.AbsolutePath
+                                );
+                            }
+                            else
+                            {
+                                await newImageSource.GetBitmapAsync();
+                            }
+
+                            await newImageSource.GetOrRefreshTemplateKeyAsync();
 
                             sender.ImageSource = newImageSource;
                             sender.LocalImageFile = newImage;
-
-                            // oldImageSource?.Dispose();
 
                             currentIndex = newIndex;
                         }

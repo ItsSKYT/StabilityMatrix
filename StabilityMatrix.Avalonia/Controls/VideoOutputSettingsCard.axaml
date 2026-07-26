@@ -14,12 +14,11 @@
     </Design.PreviewWith>
 
     <Style Selector="controls|VideoOutputSettingsCard">
-        <!-- Set Defaults -->
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="Template">
             <ControlTemplate>
                 <controls:Card Padding="8" HorizontalAlignment="{TemplateBinding HorizontalAlignment}">
-                    <Grid Margin="4" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto, *">
+                    <Grid Margin="4" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto, *">
                         <TextBlock 
                             Grid.Row="0"
                             Grid.Column="0"
@@ -51,26 +50,73 @@
                             Grid.Column="0"
                             Margin="0,8,8,0"
                             VerticalAlignment="Center"
-                            Text="{x:Static lang:Resources.Label_Lossless}" />
-                        <CheckBox
+                            Text="Format" />
+                        <ComboBox
                             Grid.Row="2"
                             Grid.Column="1"
-                            IsChecked="{Binding Lossless}"
                             Margin="8,8,0,0"
-                            HorizontalAlignment="Stretch" />
+                            MinWidth="100"
+                            ItemsSource="{Binding AvailableFormats}"
+                            SelectedItem="{Binding SelectedFormat}" />
 
                         <TextBlock
                             Grid.Row="3"
                             Grid.Column="0"
                             Margin="0,8,8,0"
                             VerticalAlignment="Center"
+                            Text="{x:Static lang:Resources.Label_Lossless}" />
+                        <CheckBox
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            IsChecked="{Binding Lossless}"
+                            Margin="8,8,0,0"
+                            HorizontalAlignment="Stretch" />
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Margin="0,8,8,0"
+                            VerticalAlignment="Center"
+                            Text="Add Audio" />
+                        <CheckBox
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            IsChecked="{Binding AddAudio}"
+                            Margin="8,8,0,0"
+                            ToolTip.Tip="Mux a soundtrack into the MP4. On LTX pages choose native LTX audio (default) or MMAudio Foley."
+                            HorizontalAlignment="Stretch" />
+
+                        <TextBlock
+                            Grid.Row="5"
+                            Grid.Column="0"
+                            Margin="0,8,8,0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding ShowAudioSource}"
+                            Text="Audio Source" />
+                        <ComboBox
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Margin="8,8,0,0"
+                            MinWidth="100"
+                            IsVisible="{Binding ShowAudioSource}"
+                            ItemsSource="{Binding AvailableAudioSources}"
+                            SelectedItem="{Binding SelectedAudioSource}"
+                            ToolTip.Tip="LTX: joint audio from the model (needs LTX23_audio_vae_bf16.safetensors in Checkpoints). MMAudio: Foley after generation." />
+
+                        <TextBlock
+                            Grid.Row="6"
+                            Grid.Column="0"
+                            Margin="0,8,8,0"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding ShowQuality}"
                             Text="{x:Static lang:Resources.Label_VideoQuality}" />
                         <controls1:NumberBox
                             Margin="8,8,0,0"
-                            Grid.Row="3"
+                            Grid.Row="6"
                             Grid.Column="1"
                             SelectionHighlightColor="Transparent"
                             Value="{Binding Quality}"
+                            IsVisible="{Binding ShowQuality}"
                             SimpleNumberFormat="F0"
                             SmallChange="1"
                             Maximum="100"
@@ -79,17 +125,19 @@
 
                         <TextBlock
                             Margin="0,8,8,0"
-                            Grid.Row="4"
+                            Grid.Row="7"
                             Grid.Column="0"
                             VerticalAlignment="Center"
+                            IsVisible="{Binding ShowWebpMethod}"
                             Text="{x:Static lang:Resources.Label_VideoOutputMethod}" />
                         <ComboBox
-                            Grid.Row="4"
+                            Grid.Row="7"
                             Grid.Column="1"
                             Margin="8,8,0,0"
                             MinWidth="100"
+                            IsVisible="{Binding ShowWebpMethod}"
                             ItemsSource="{Binding AvailableMethods}"
-                            SelectedIndex="{Binding SelectedMethod}" />
+                            SelectedItem="{Binding SelectedMethod}" />
                     </Grid>
                 </controls:Card>
             </ControlTemplate>

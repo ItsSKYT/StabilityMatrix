@@ -262,12 +262,21 @@ namespace Avalonia.Gif
 
         private void SourceChanged(AvaloniaPropertyChangedEventArgs e)
         {
-            if (
-                e.NewValue is null
-                || (e.NewValue is string value && !Uri.IsWellFormedUriString(value, UriKind.Absolute))
-            )
+            if (e.NewValue is null)
             {
                 return;
+            }
+
+            // Accept absolute URIs, existing local file paths, or streams.
+            if (e.NewValue is string pathOrUri)
+            {
+                var ok =
+                    Uri.IsWellFormedUriString(pathOrUri, UriKind.Absolute)
+                    || File.Exists(pathOrUri);
+                if (!ok)
+                {
+                    return;
+                }
             }
 
             if (_customVisual is null)

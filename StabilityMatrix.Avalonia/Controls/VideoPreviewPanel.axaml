@@ -1,0 +1,25 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="clr-namespace:StabilityMatrix.Avalonia.Controls"
+    xmlns:gif="clr-namespace:Avalonia.Gif;assembly=Avalonia.Gif"
+    x:Class="StabilityMatrix.Avalonia.Controls.VideoPreviewPanel">
+    <Grid>
+        <!-- Silent still / webp (also shown until WebView is ready) -->
+        <Panel x:Name="FallbackPanel">
+            <controls:AdvancedImageBox
+                x:Name="StillBox"
+                CornerRadius="4"
+                SizeMode="Fit" />
+            <gif:GifImage
+                x:Name="WebpPlayer"
+                IsVisible="False"
+                Stretch="Uniform" />
+        </Panel>
+
+        <!-- Synced HTML5 video + mute chip (inside WebView — Avalonia overlays sit under HWND) -->
+        <controls:WebView2Host
+            x:Name="WebHost"
+            IsVisible="False" />
+    </Grid>
+</UserControl>

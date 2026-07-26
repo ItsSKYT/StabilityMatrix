@@ -18,6 +18,12 @@ public static class InferenceProjectTypeExtensions
             InferenceProjectType.FluxTextToImage => typeof(InferenceFluxTextToImageViewModel),
             InferenceProjectType.WanTextToVideo => typeof(InferenceWanTextToVideoViewModel),
             InferenceProjectType.WanImageToVideo => typeof(InferenceWanImageToVideoViewModel),
+            InferenceProjectType.QwenImageEdit => typeof(InferenceQwenImageEditViewModel),
+            InferenceProjectType.Flux2KleinImageEdit => typeof(InferenceFlux2KleinImageEditViewModel),
+            InferenceProjectType.ImagePrompt => typeof(InferenceImagePromptViewModel),
+            InferenceProjectType.Krea2ImageEdit => typeof(InferenceKrea2ImageEditViewModel),
+            InferenceProjectType.LtxvTextToVideo => typeof(InferenceLtxvTextToVideoViewModel),
+            InferenceProjectType.LtxvImageToVideo => typeof(InferenceLtxvImageToVideoViewModel),
             InferenceProjectType.Unknown => null,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };

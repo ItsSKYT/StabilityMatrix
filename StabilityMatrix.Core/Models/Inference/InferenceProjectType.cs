@@ -11,4 +11,10 @@ public enum InferenceProjectType
     FluxTextToImage,
     WanTextToVideo,
     WanImageToVideo,
+    QwenImageEdit,
+    Flux2KleinImageEdit,
+    ImagePrompt,
+    Krea2ImageEdit,
+    LtxvTextToVideo,
+    LtxvImageToVideo,
 }

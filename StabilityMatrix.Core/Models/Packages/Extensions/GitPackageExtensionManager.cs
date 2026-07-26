@@ -125,7 +125,7 @@ public abstract partial class GitPackageExtensionManager(IPrerequisiteHelper pre
                             CommitSha = version.CommitSha,
                         },
                         GitRepositoryUrl = remoteUrlResult.IsSuccessExitCode
-                            ? remoteUrlResult.StandardOutput?.Trim()
+                            ? NormalizeGitRepositoryUrl(remoteUrlResult.StandardOutput)
                             : null,
                     }
                 );
@@ -171,33 +171,50 @@ public abstract partial class GitPackageExtensionManager(IPrerequisiteHelper pre
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Skip if not valid git repository
-                if (!subDirectory.JoinDir(".git").Exists)
+                // Prefer git remote URL when available
+                if (subDirectory.JoinDir(".git").Exists)
                 {
+                    string? remoteUrl = null;
+
+                    var gitConfigPath = subDirectory.JoinDir(".git").JoinFile("config");
+                    if (
+                        gitConfigPath.Exists
+                        && await gitConfigPath.ReadAllTextAsync(cancellationToken).ConfigureAwait(false)
+                            is { } gitConfigText
+                    )
+                    {
+                        var pattern = GitConfigRemoteOriginUrlRegex();
+                        var match = pattern.Match(gitConfigText);
+                        if (match.Success)
+                        {
+                            remoteUrl = NormalizeGitRepositoryUrl(match.Groups[1].Value);
+                        }
+                    }
+
+                    extensions.Add(
+                        new InstalledPackageExtension { Paths = [subDirectory], GitRepositoryUrl = remoteUrl }
+                    );
                     continue;
                 }
 
-                // Get remote url with manual parsing
-                string? remoteUrl = null;
-
-                var gitConfigPath = subDirectory.JoinDir(".git").JoinFile("config");
+                // Fallback for extensions installed without .git (copied / junction):
+                // read Repository URL from pyproject.toml so required-extension checks still match.
+                var pyprojectPath = subDirectory.JoinFile("pyproject.toml");
                 if (
-                    gitConfigPath.Exists
-                    && await gitConfigPath.ReadAllTextAsync(cancellationToken).ConfigureAwait(false)
-                        is { } gitConfigText
+                    pyprojectPath.Exists
+                    && await pyprojectPath.ReadAllTextAsync(cancellationToken).ConfigureAwait(false)
+                        is { } pyprojectText
+                    && TryGetPyprojectRepositoryUrl(pyprojectText, out var repositoryUrl)
                 )
                 {
-                    var pattern = GitConfigRemoteOriginUrlRegex();
-                    var match = pattern.Match(gitConfigText);
-                    if (match.Success)
-                    {
-                        remoteUrl = match.Groups[1].Value;
-                    }
+                    extensions.Add(
+                        new InstalledPackageExtension
+                        {
+                            Paths = [subDirectory],
+                            GitRepositoryUrl = repositoryUrl,
+                        }
+                    );
                 }
-
-                extensions.Add(
-                    new InstalledPackageExtension { Paths = [subDirectory], GitRepositoryUrl = remoteUrl }
-                );
             }
         }
 
@@ -374,6 +391,34 @@ public abstract partial class GitPackageExtensionManager(IPrerequisiteHelper pre
         progress?.Report(new ProgressReport(1f, message: "Uninstalled extension"));
     }
 
+    private static bool TryGetPyprojectRepositoryUrl(string pyprojectText, out string repositoryUrl)
+    {
+        repositoryUrl = string.Empty;
+
+        // Match: Repository = "https://..."
+        var match = PyprojectRepositoryUrlRegex().Match(pyprojectText);
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        repositoryUrl = NormalizeGitRepositoryUrl(match.Groups[1].Value) ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(repositoryUrl);
+    }
+
+    private static string? NormalizeGitRepositoryUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return null;
+        }
+
+        return url.Trim().StripEnd(".git").TrimEnd('/');
+    }
+
     [GeneratedRegex("""\[remote "origin"\][\s\S]*?url\s*=\s*(.+)""")]
     private static partial Regex GitConfigRemoteOriginUrlRegex();
+
+    [GeneratedRegex("""(?im)^\s*Repository\s*=\s*["']([^"']+)["']""")]
+    private static partial Regex PyprojectRepositoryUrlRegex();
 }

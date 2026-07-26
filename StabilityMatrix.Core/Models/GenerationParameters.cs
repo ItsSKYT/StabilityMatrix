@@ -28,6 +28,10 @@ public record GenerationParameters
     public double MinCfg { get; set; }
     public double AugmentationLevel { get; set; }
     public string? VideoOutputMethod { get; set; }
+    public bool AddVideoAudio { get; set; }
+
+    /// <summary>Ltx or MMAudio — used when <see cref="AddVideoAudio"/> is true.</summary>
+    public string? VideoAudioSource { get; set; }
     public int? ModelVersionId { get; set; }
     public List<int>? ExtraNetworkModelVersionIds { get; set; }
 

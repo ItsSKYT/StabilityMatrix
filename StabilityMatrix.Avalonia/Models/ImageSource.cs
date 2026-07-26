@@ -26,6 +26,21 @@ public record ImageSource : IDisposable, ITemplateKey<ImageSourceTemplateType>
     public FilePath? LocalFile { get; init; }
 
     /// <summary>
+    /// Optional thumbnail for video files (used by gallery list)
+    /// </summary>
+    public FilePath? ThumbnailFile { get; set; }
+
+    /// <summary>
+    /// Optional animated preview (e.g. webp) used for in-app looping playback of video files
+    /// </summary>
+    public FilePath? PlaybackFile { get; set; }
+
+    /// <summary>
+    /// True when the local video file has an audio track (mute toggle shown; starts muted).
+    /// </summary>
+    public bool HasAudio { get; set; }
+
+    /// <summary>
     /// Remote URL
     /// </summary>
     public Uri? RemoteUrl { get; init; }
@@ -63,6 +78,33 @@ public record ImageSource : IDisposable, ITemplateKey<ImageSourceTemplateType>
 
     [JsonIgnore]
     public Uri? Uri => LocalFile?.FullPath != null ? new Uri(LocalFile.FullPath) : RemoteUrl;
+
+    [JsonIgnore]
+    public Uri? DisplayUri =>
+        ThumbnailFile?.FullPath is { } thumbPath
+            ? new Uri(thumbPath)
+            : Uri;
+
+    /// <summary>
+    /// Path used by the animated player (webp preview for mp4, or the file itself for animated webp).
+    /// For TemplateKey.Video, never falls back to the mp4 itself — GifImage cannot decode video containers.
+    /// </summary>
+    [JsonIgnore]
+    public string? PlaybackPath =>
+        PlaybackFile?.FullPath
+        ?? (
+            TemplateKey is ImageSourceTemplateType.Video
+                ? null
+                : LocalFile?.FullPath
+        );
+
+    [JsonIgnore]
+    public bool HasAnimatedPlayback =>
+        !string.IsNullOrWhiteSpace(PlaybackPath)
+        && (
+            PlaybackPath.EndsWith(".webp", StringComparison.OrdinalIgnoreCase)
+            || PlaybackPath.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)
+        );
 
     /// <inheritdoc />
     public ImageSourceTemplateType TemplateKey { get; private set; }
@@ -123,6 +165,18 @@ public record ImageSource : IDisposable, ITemplateKey<ImageSourceTemplateType>
         if (extension.Equals(".gif", StringComparison.OrdinalIgnoreCase))
         {
             TemplateKey = ImageSourceTemplateType.WebpAnimation;
+            return true;
+        }
+
+        if (
+            extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".webm", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".mov", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".mkv", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".avi", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            TemplateKey = ImageSourceTemplateType.Video;
             return true;
         }
 

@@ -109,6 +109,7 @@
         <PackageReference Include="FuzzySharp" />
         <PackageReference Include="JetBrains.Annotations" />
         <PackageReference Include="KeyedSemaphores" />
+        <PackageReference Include="Microsoft.Web.WebView2" />
         <PackageReference Include="Markdig" />
         <PackageReference Include="Markdown.Avalonia" />
         <PackageReference Include="MessagePipe" />

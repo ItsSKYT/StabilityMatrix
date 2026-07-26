@@ -101,6 +101,7 @@
         <StyleInclude Source="Controls/Painting/PaintCanvas.axaml" />
         <StyleInclude Source="Controls/MarkdownViewer.axaml" />
         <StyleInclude Source="Controls/Inference/WanModelCard.axaml" />
+        <StyleInclude Source="Controls/Inference/LtxvModelCard.axaml" />
         <StyleInclude Source="Controls/Inference/PlasmaNoiseCard.axaml" />
         <StyleInclude Source="Controls/Inference/NrsCard.axaml" />
         <StyleInclude Source="Controls/Inference/CfzCudnnToggleCard.axaml" />

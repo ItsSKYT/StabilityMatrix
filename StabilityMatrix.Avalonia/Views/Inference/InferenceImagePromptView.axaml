@@ -1,0 +1,223 @@
+<controls:UserControlBase
+    x:Class="StabilityMatrix.Avalonia.Views.Inference.InferenceImagePromptView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:avalonia="https://github.com/projektanker/icons.avalonia"
+    xmlns:controls="clr-namespace:StabilityMatrix.Avalonia.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:inference="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Inference"
+    xmlns:markupExtensions="clr-namespace:StabilityMatrix.Avalonia.MarkupExtensions"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:mocks="clr-namespace:StabilityMatrix.Avalonia.DesignData"
+    xmlns:modelsInference="clr-namespace:StabilityMatrix.Avalonia.Models.Inference"
+    xmlns:ui="using:FluentAvalonia.UI.Controls"
+    d:DataContext="{x:Static mocks:DesignData.InferenceImagePromptViewModel}"
+    d:DesignHeight="750"
+    d:DesignWidth="1100"
+    x:DataType="inference:InferenceImagePromptViewModel"
+    mc:Ignorable="d">
+    <Grid Margin="2,0,2,8">
+        <DockControl
+            x:Name="Dock"
+            InitializeFactory="True"
+            InitializeLayout="True">
+            <DockControl.Factory>
+                <Factory />
+            </DockControl.Factory>
+
+            <RootDock
+                x:Name="Root"
+                DefaultDockable="{Binding #MainLayout}"
+                Id="Root"
+                IsCollapsable="False">
+
+                <ProportionalDock
+                    x:Name="MainLayout"
+                    Id="MainLayout"
+                    Orientation="Horizontal">
+
+                    <ToolDock
+                        x:Name="ConfigPane"
+                        Alignment="Left"
+                        Id="ConfigPane"
+                        Proportion="0.22">
+                        <Tool
+                            x:Name="ConfigTool"
+                            Title="Config"
+                            x:DataType="Tool"
+                            CanClose="False"
+                            Id="ConfigTool">
+                            <ScrollViewer
+                                x:CompileBindings="False"
+                                DataContext="{Binding ElementName=Dock, Path=DataContext}">
+                                <StackPanel Margin="8" Spacing="12">
+                                    <controls:Card Padding="12">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="Format" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Static inference:InferenceImagePromptViewModel.AvailableFormats}"
+                                                SelectedItem="{Binding SelectedFormat}" />
+                                            <TextBlock
+                                                Opacity="0.7"
+                                                Text="Tags = comma list&#x0a;Sentences = full description&#x0a;Mixed = both"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </controls:Card>
+
+                                    <controls:Card Padding="12">
+                                        <StackPanel Spacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="Florence2 Model" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{x:Static inference:InferenceImagePromptViewModel.AvailableModels}"
+                                                SelectedItem="{Binding SelectedModel}" />
+                                            <TextBlock
+                                                Opacity="0.7"
+                                                Text="PromptGen models work best for tags and captions. First run downloads the model into Comfy LLM folder."
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </controls:Card>
+
+                                    <controls:SeedCard DataContext="{Binding SeedCardViewModel}" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Tool>
+                    </ToolDock>
+
+                    <ProportionalDockSplitter x:Name="Splitter1" Id="Splitter1" />
+
+                    <ProportionalDock
+                        x:Name="CenterProportionalDock"
+                        Id="CenterProportionalDock"
+                        Orientation="Vertical">
+
+                        <ToolDock
+                            x:Name="ImagePane"
+                            Alignment="Left"
+                            Id="ImagePane"
+                            Proportion="0.35">
+                            <Tool
+                                x:Name="ImageTool"
+                                Title="Image"
+                                x:DataType="Tool"
+                                CanClose="False"
+                                Id="ImageTool">
+                                <Grid
+                                    x:CompileBindings="False"
+                                    DataContext="{Binding ElementName=Dock, Path=DataContext}"
+                                    Opacity="1"
+                                    RowDefinitions="*">
+                                    <controls:SelectImageCard
+                                        x:CompileBindings="False"
+                                        DataContext="{Binding SelectImageCardViewModel}" />
+                                </Grid>
+                            </Tool>
+                        </ToolDock>
+
+                        <ProportionalDockSplitter />
+
+                        <ToolDock
+                            x:Name="PromptPane"
+                            Alignment="Left"
+                            Id="PromptPane"
+                            Proportion="0.4">
+                            <Tool
+                                x:Name="PromptTool"
+                                Title="Generated Prompt"
+                                x:DataType="Tool"
+                                CanClose="False"
+                                Id="PromptTool">
+                                <Grid
+                                    x:CompileBindings="False"
+                                    DataContext="{Binding ElementName=Dock, Path=DataContext}"
+                                    Opacity="1"
+                                    RowDefinitions="*,Auto">
+                                    <controls:PromptCard DataContext="{Binding PromptCardViewModel}" />
+
+                                    <StackPanel Grid.Row="1" Margin="0,6,0,0">
+                                        <controls:Card Padding="8">
+                                            <Grid HorizontalAlignment="Center" ColumnDefinitions="*,Auto,*">
+                                                <Button
+                                                    x:Name="GenerateButton"
+                                                    Grid.Column="1"
+                                                    Width="160"
+                                                    HorizontalAlignment="Stretch"
+                                                    Classes="accent"
+                                                    Command="{Binding GenerateImageCommand}"
+                                                    CommandParameter="{x:Static modelsInference:GenerateFlags.None}"
+                                                    HotKey="{markupExtensions:PlatformGesture Ctrl+Enter}"
+                                                    ToolTip.Tip="{Binding $self.HotKey}">
+                                                    <Button.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                            <Binding Path="!GenerateImageCommand.CanBeCanceled" />
+                                                            <Binding Path="!IsProcessingGenerationQueue" />
+                                                        </MultiBinding>
+                                                    </Button.IsVisible>
+                                                    <Panel>
+                                                        <TextBlock
+                                                            IsVisible="{Binding #GenerateButton.IsEnabled}"
+                                                            Text="Generate Prompt" />
+                                                        <controls:ProgressRing
+                                                            IsIndeterminate="True"
+                                                            IsVisible="{Binding !#GenerateButton.IsEnabled}" />
+                                                    </Panel>
+                                                </Button>
+                                                <Button
+                                                    x:Name="CancelButton"
+                                                    Grid.Column="1"
+                                                    Width="160"
+                                                    HorizontalAlignment="Stretch"
+                                                    avalonia:Attached.Icon="fa-solid fa-stop"
+                                                    Command="{Binding CancelGenerationPipelineCommand}">
+                                                    <Button.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                                                            <Binding Path="GenerateImageCommand.CanBeCanceled" />
+                                                            <Binding Path="IsProcessingGenerationQueue" />
+                                                        </MultiBinding>
+                                                    </Button.IsVisible>
+                                                </Button>
+                                            </Grid>
+                                        </controls:Card>
+                                    </StackPanel>
+                                </Grid>
+                            </Tool>
+                        </ToolDock>
+                    </ProportionalDock>
+
+                    <ProportionalDockSplitter x:Name="Splitter2" Id="Splitter2" />
+
+                    <ToolDock
+                        x:Name="ImageGalleryPane"
+                        Alignment="Right"
+                        Id="ImageGalleryPane"
+                        Proportion="0.2">
+                        <Tool
+                            x:Name="ImageGalleryTool"
+                            Title="Status"
+                            x:DataType="Tool"
+                            CanClose="False"
+                            Id="ImageGalleryTool">
+                            <Grid
+                                x:CompileBindings="False"
+                                DataContext="{Binding ElementName=Dock, Path=DataContext}">
+                                <StackPanel
+                                    Margin="8"
+                                    VerticalAlignment="Top"
+                                    DataContext="{Binding OutputProgress}"
+                                    Spacing="8">
+                                    <TextBlock FontWeight="SemiBold" Text="Progress" />
+                                    <ProgressBar
+                                        Maximum="{Binding Maximum}"
+                                        Minimum="0"
+                                        Value="{Binding Value}" />
+                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Tool>
+                    </ToolDock>
+                </ProportionalDock>
+            </RootDock>
+        </DockControl>
+    </Grid>
+</controls:UserControlBase>

@@ -116,6 +116,7 @@
     <PackageVersion Include="FluentIcons.Avalonia.Fluent" Version="1.1.293" />
     <PackageVersion Include="Markdown.Avalonia" Version="11.0.3-a1" />
     <PackageVersion Include="Projektanker.Icons.Avalonia.FontAwesome" Version="9.4.0" />
+    <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
     <PackageVersion Include="SpacedGrid-Avalonia" Version="11.0.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.0.0-preview.4.1" />
   </ItemGroup>

@@ -117,11 +117,19 @@
                             </ListBox.Styles>
                             <ListBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:ImageSource}">
-                                    <vendorLabs:BetterAsyncImage
-                                        MaxHeight="65"
-                                        CornerRadius="4"
-                                        Source="{Binding Uri}"
-                                        Stretch="Uniform" />
+                                    <Panel MaxHeight="65">
+                                        <Image
+                                            MaxHeight="65"
+                                            IsVisible="{Binding Bitmap, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                            Source="{Binding Bitmap}"
+                                            Stretch="Uniform" />
+                                        <vendorLabs:BetterAsyncImage
+                                            MaxHeight="65"
+                                            CornerRadius="4"
+                                            IsVisible="{Binding Bitmap, Converter={x:Static ObjectConverters.IsNull}}"
+                                            Source="{Binding DisplayUri}"
+                                            Stretch="Uniform" />
+                                    </Panel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>

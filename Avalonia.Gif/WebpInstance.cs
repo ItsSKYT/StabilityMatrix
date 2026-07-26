@@ -124,21 +124,24 @@ public class WebpInstance : IGifInstance
     {
         var uriString = uri.OriginalString.Trim();
 
-        if (!uriString.StartsWith("resm") && !uriString.StartsWith("avares"))
+        if (uriString.StartsWith("resm", StringComparison.Ordinal) || uriString.StartsWith("avares", StringComparison.Ordinal))
         {
-            // Local file
-            using var fs = new FileStream(uriString, FileMode.Open, FileAccess.Read);
-
-            // Copy to memory stream then return
-            var memoryStream = new MemoryStream();
-            fs.CopyTo(memoryStream);
-            memoryStream.Seek(0, SeekOrigin.Begin);
-
-            return memoryStream;
+            return AssetLoader.Open(uri);
         }
 
-        // Internal Avalonia resources
-        return AssetLoader.Open(uri);
+        // Prefer LocalPath for file:// URIs; OriginalString may be "file:///D:/..." which FileStream rejects.
+        var localPath = uri.IsFile ? uri.LocalPath : uriString;
+        if (string.IsNullOrWhiteSpace(localPath) || !File.Exists(localPath))
+        {
+            // Fallback: treat OriginalString as a raw Windows/Unix path
+            localPath = uriString;
+        }
+
+        using var fs = new FileStream(localPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var memoryStream = new MemoryStream();
+        fs.CopyTo(memoryStream);
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        return memoryStream;
     }
 
     public int GifFrameCount => _frameTimes.Count;

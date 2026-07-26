@@ -6,4 +6,10 @@ public class ComfyHistoryOutput
 {
     [JsonPropertyName("images")]
     public List<ComfyImage>? Images { get; set; }
+
+    [JsonPropertyName("audio")]
+    public List<ComfyImage>? Audio { get; set; }
+
+    [JsonPropertyName("text")]
+    public List<string>? Text { get; set; }
 }

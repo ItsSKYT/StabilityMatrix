@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FluentAvalonia.UI.Controls;
@@ -250,6 +251,61 @@ public partial class WanModelCardViewModel(
 
         e.Builder.Connections.BaseClipVision = clipVisionLoader.Output;
         e.Builder.Connections.Base.ClipVision = clipVisionLoader.Output;
+    }
+
+    public override void LoadStateFromJsonObject(JsonObject state)
+    {
+        base.LoadStateFromJsonObject(state);
+        RematchSelectionsFromClientManager();
+    }
+
+    private void RematchSelectionsFromClientManager()
+    {
+        if (SelectedModel is { } selectedModel)
+        {
+            SelectedModel =
+                FindLocalModel(ClientManager.UnetModels, selectedModel) ?? selectedModel;
+        }
+
+        if (SelectedClipModel is { } selectedClip)
+        {
+            SelectedClipModel =
+                FindLocalModel(ClientManager.ClipModels, selectedClip) ?? selectedClip;
+        }
+
+        if (SelectedVae is { } selectedVae)
+        {
+            SelectedVae = FindLocalModel(ClientManager.VaeModels, selectedVae) ?? selectedVae;
+        }
+
+        if (SelectedClipVisionModel is { } selectedClipVision)
+        {
+            SelectedClipVisionModel =
+                FindLocalModel(ClientManager.ClipVisionModels, selectedClipVision)
+                ?? selectedClipVision;
+        }
+    }
+
+    private static HybridModelFile? FindLocalModel(
+        IEnumerable<HybridModelFile> models,
+        HybridModelFile selected
+    )
+    {
+        var relativePath = selected.Local?.RelativePath;
+        var fileName = selected.FileName;
+
+        return models.FirstOrDefault(m =>
+                relativePath is not null
+                && string.Equals(
+                    m.Local?.RelativePath,
+                    relativePath,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            ?? models.FirstOrDefault(m =>
+                !string.IsNullOrEmpty(fileName)
+                && string.Equals(m.FileName, fileName, StringComparison.OrdinalIgnoreCase)
+            );
     }
 
     public void LoadStateFromParameters(GenerationParameters parameters)

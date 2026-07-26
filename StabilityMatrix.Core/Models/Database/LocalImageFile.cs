@@ -80,6 +80,37 @@ public record LocalImageFile
             return (null, paramsJson, smProj, null, null);
         }
 
+        if (SupportedVideoExtensions.Contains(Path.GetExtension(AbsolutePath)))
+        {
+            var sidecar = AbsolutePath + ".smmeta.json";
+            if (!File.Exists(sidecar))
+                return (null, null, null, null, null);
+
+            try
+            {
+                var json = File.ReadAllText(sidecar);
+                using var doc = JsonDocument.Parse(json);
+                string? paramsJson = null;
+                string? smProj = null;
+
+                if (doc.RootElement.TryGetProperty("Parameters", out var paramsEl))
+                    paramsJson = paramsEl.GetRawText();
+                else if (doc.RootElement.TryGetProperty("parameters", out var paramsEl2))
+                    paramsJson = paramsEl2.GetRawText();
+
+                if (doc.RootElement.TryGetProperty("Project", out var projEl))
+                    smProj = projEl.GetRawText();
+                else if (doc.RootElement.TryGetProperty("project", out var projEl2))
+                    smProj = projEl2.GetRawText();
+
+                return (null, paramsJson, smProj, null, null);
+            }
+            catch
+            {
+                return (null, null, null, null, null);
+            }
+        }
+
         using var stream = new FileStream(AbsolutePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var reader = new BinaryReader(stream);
 
@@ -174,10 +205,33 @@ public record LocalImageFile
             };
         }
 
-        // Handle video files - no image metadata, just file info
+        // Handle video files — parameters/project from .smmeta.json sidecar when present
         if (SupportedVideoExtensions.Contains(filePath.Extension))
         {
             filePath.Info.Refresh();
+
+            GenerationParameters? genParams = null;
+            var sidecar = filePath.FullPath + ".smmeta.json";
+            if (File.Exists(sidecar))
+            {
+                try
+                {
+                    var json = File.ReadAllText(sidecar);
+                    using var doc = JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("Parameters", out var paramsEl))
+                    {
+                        genParams = paramsEl.Deserialize<GenerationParameters>();
+                    }
+                    else if (doc.RootElement.TryGetProperty("parameters", out var paramsEl2))
+                    {
+                        genParams = paramsEl2.Deserialize<GenerationParameters>();
+                    }
+                }
+                catch (JsonException)
+                {
+                    // ignore corrupt sidecar
+                }
+            }
 
             return new LocalImageFile
             {
@@ -185,6 +239,7 @@ public record LocalImageFile
                 ImageType = imageType,
                 CreatedAt = filePath.Info.CreationTimeUtc,
                 LastModifiedAt = filePath.Info.LastWriteTimeUtc,
+                GenerationParameters = genParams,
             };
         }
 

@@ -6,6 +6,14 @@ public class VAENodeConnection : NodeConnectionBase;
 
 public class ImageNodeConnection : NodeConnectionBase;
 
+public class VideoNodeConnection : NodeConnectionBase;
+
+public class AudioNodeConnection : NodeConnectionBase;
+
+public class MMAudioModelNodeConnection : NodeConnectionBase;
+
+public class MMAudioFeatureUtilsNodeConnection : NodeConnectionBase;
+
 public class ImageMaskConnection : NodeConnectionBase;
 
 public class UpscaleModelNodeConnection : NodeConnectionBase;
@@ -27,6 +35,8 @@ public class SamplerNodeConnection : NodeConnectionBase;
 public class SigmasNodeConnection : NodeConnectionBase;
 
 public class StringNodeConnection : NodeConnectionBase;
+
+public class Florence2ModelNodeConnection : NodeConnectionBase;
 
 public class BboxDetectorNodeConnection : NodeConnectionBase;
 

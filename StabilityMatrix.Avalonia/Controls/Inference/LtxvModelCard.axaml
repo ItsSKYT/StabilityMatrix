@@ -1,0 +1,169 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:StabilityMatrix.Avalonia.Controls"
+    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:inference="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Inference"
+    xmlns:lang="clr-namespace:StabilityMatrix.Avalonia.Languages"
+    xmlns:sg="clr-namespace:SpacedGridControl.Avalonia;assembly=SpacedGridControl.Avalonia"
+    xmlns:ui="clr-namespace:FluentAvalonia.UI.Controls;assembly=FluentAvalonia"
+    x:DataType="inference:LtxvModelCardViewModel">
+    <Style Selector="controls|LtxvModelCard">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <controls:Card Padding="12">
+                    <sg:SpacedGrid
+                        ColumnDefinitions="100,*,Auto"
+                        ColumnSpacing="8"
+                        RowDefinitions="*,*,*,*,*,*,*"
+                        RowSpacing="0">
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="{x:Static lang:Resources.Label_Model}"
+                            TextAlignment="Left" />
+                        <controls:BetterComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Padding="8,6,4,6"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding ClientManager.Models}"
+                            SelectedItem="{Binding SelectedModel}"
+                            Theme="{StaticResource BetterComboBoxHybridModelTheme}" />
+                        <Button
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding OpenModelPickerCommand}"
+                            ToolTip.Tip="Browse checkpoints / UNets">
+                            <fluent:SymbolIcon FontSize="16" Symbol="Search" />
+                        </Button>
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="Gemma TE"
+                            TextAlignment="Left" />
+                        <controls:BetterDownloadableComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="0,8,0,0"
+                            Padding="8,6,4,6"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding ClientManager.ClipModels}"
+                            SelectedItem="{Binding SelectedClipModel}"
+                            Theme="{StaticResource BetterComboBoxHybridModelTheme}" />
+                        <Button
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            Margin="4,8,0,0"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding OpenClipPickerCommand}"
+                            ToolTip.Tip="Browse text encoders">
+                            <fluent:SymbolIcon FontSize="16" Symbol="Search" />
+                        </Button>
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="Text Proj"
+                            TextAlignment="Left"
+                            ToolTip.Tip="ltx-2.3_text_projection_bf16 — required for transformer-only packs" />
+                        <controls:BetterDownloadableComboBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="0,8,0,0"
+                            Padding="8,6,4,6"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding ClientManager.ClipModels}"
+                            SelectedItem="{Binding SelectedTextProjection}"
+                            Theme="{StaticResource BetterComboBoxHybridModelTheme}" />
+                        <Button
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Margin="4,8,0,0"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding OpenTextProjectionPickerCommand}"
+                            ToolTip.Tip="Browse text projection">
+                            <fluent:SymbolIcon FontSize="16" Symbol="Search" />
+                        </Button>
+
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="{x:Static lang:Resources.Label_VAE}"
+                            TextAlignment="Left"
+                            ToolTip.Tip="Required — taeltx2_3 or LTX23_video_vae (transformer-only has no baked VAE)" />
+                        <ui:FAComboBox
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Stretch"
+                            DisplayMemberBinding="{Binding ShortDisplayName}"
+                            IsTextSearchEnabled="True"
+                            ItemsSource="{Binding ClientManager.VaeModels}"
+                            SelectedItem="{Binding SelectedVae}" />
+                        <Button
+                            Grid.Row="3"
+                            Grid.Column="2"
+                            Margin="4,8,0,0"
+                            VerticalAlignment="Stretch"
+                            Command="{Binding OpenVaePickerCommand}">
+                            <fluent:SymbolIcon FontSize="16" Symbol="Search" />
+                        </Button>
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="Max Shift" />
+                        <ui:NumberBox
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Stretch"
+                            SimpleNumberFormat="F2"
+                            SmallChange="0.05"
+                            SpinButtonPlacementMode="Inline"
+                            Value="{Binding MaxShift}" />
+
+                        <TextBlock
+                            Grid.Row="5"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="Base Shift" />
+                        <ui:NumberBox
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,8,0,0"
+                            HorizontalAlignment="Stretch"
+                            SimpleNumberFormat="F2"
+                            SmallChange="0.05"
+                            SpinButtonPlacementMode="Inline"
+                            Value="{Binding BaseShift}" />
+
+                        <Panel
+                            Grid.Row="6"
+                            Grid.Column="0"
+                            Grid.ColumnSpan="3">
+                            <controls:StackEditableCard
+                                Margin="0,8,0,0"
+                                DataContext="{Binding ExtraNetworksStackCardViewModel}" />
+                        </Panel>
+                    </sg:SpacedGrid>
+                </controls:Card>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

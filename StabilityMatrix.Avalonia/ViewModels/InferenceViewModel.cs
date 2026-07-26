@@ -722,6 +722,21 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
             InferenceProjectType.Upscale => scope.ServiceManager.Get<InferenceImageUpscaleViewModel>(),
             InferenceProjectType.FluxTextToImage
                 => scope.ServiceManager.Get<InferenceFluxTextToImageViewModel>(),
+            InferenceProjectType.WanTextToVideo
+                => scope.ServiceManager.Get<InferenceWanTextToVideoViewModel>(),
+            InferenceProjectType.WanImageToVideo
+                => scope.ServiceManager.Get<InferenceWanImageToVideoViewModel>(),
+            InferenceProjectType.QwenImageEdit => scope.ServiceManager.Get<InferenceQwenImageEditViewModel>(),
+            InferenceProjectType.Flux2KleinImageEdit
+                => scope.ServiceManager.Get<InferenceFlux2KleinImageEditViewModel>(),
+            InferenceProjectType.ImagePrompt => scope.ServiceManager.Get<InferenceImagePromptViewModel>(),
+            InferenceProjectType.Krea2ImageEdit
+                => scope.ServiceManager.Get<InferenceKrea2ImageEditViewModel>(),
+            InferenceProjectType.LtxvTextToVideo
+                => scope.ServiceManager.Get<InferenceLtxvTextToVideoViewModel>(),
+            InferenceProjectType.LtxvImageToVideo
+                => scope.ServiceManager.Get<InferenceLtxvImageToVideoViewModel>(),
+            _ => throw new InvalidOperationException($"Unsupported project type: {projectType}"),
         };
 
         switch (vm)
@@ -742,6 +757,30 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
                 break;
             case InferenceFluxTextToImageViewModel _:
                 vm.LoadImageMetadata(imageFile.AbsolutePath);
+                break;
+            case InferenceWanImageToVideoViewModel wanImgToVidVm:
+                wanImgToVidVm.SelectImageCardViewModel.ImageSource = new ImageSource(imageFile.AbsolutePath);
+                break;
+            case InferenceQwenImageEditViewModel qwenImageEditVm:
+                qwenImageEditVm.SelectImageCardViewModel.ImageSource = new ImageSource(imageFile.AbsolutePath);
+                break;
+            case InferenceFlux2KleinImageEditViewModel kleinImageEditVm:
+                kleinImageEditVm.SelectImageCardViewModel.ImageSource = new ImageSource(
+                    imageFile.AbsolutePath
+                );
+                break;
+            case InferenceImagePromptViewModel imagePromptVm:
+                imagePromptVm.SelectImageCardViewModel.ImageSource = new ImageSource(imageFile.AbsolutePath);
+                break;
+            case InferenceKrea2ImageEditViewModel krea2ImageEditVm:
+                krea2ImageEditVm.SelectImageCardViewModel.ImageSource = new ImageSource(
+                    imageFile.AbsolutePath
+                );
+                break;
+            case InferenceLtxvImageToVideoViewModel ltxvImgToVidVm:
+                ltxvImgToVidVm.SelectImageCardViewModel.ImageSource = new ImageSource(
+                    imageFile.AbsolutePath
+                );
                 break;
         }
 

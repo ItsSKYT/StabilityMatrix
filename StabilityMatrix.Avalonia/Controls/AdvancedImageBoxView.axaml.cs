@@ -7,6 +7,7 @@ using StabilityMatrix.Avalonia.Helpers;
 using StabilityMatrix.Avalonia.Models;
 using StabilityMatrix.Core.Helper;
 using StabilityMatrix.Core.Models.FileInterfaces;
+using StabilityMatrix.Core.Processes;
 
 namespace StabilityMatrix.Avalonia.Controls;
 
@@ -21,6 +22,16 @@ public partial class AdvancedImageBoxView : UserControl
 
     public static AsyncRelayCommand<ImageSource?> FlyoutCopyAsBitmapCommand { get; } =
         new(FlyoutCopyAsBitmap);
+
+    public static RelayCommand<ImageSource?> OpenVideoCommand { get; } = new(OpenVideo);
+
+    private static void OpenVideo(ImageSource? imageSource)
+    {
+        if (imageSource?.LocalFile?.FullPath is { } path && File.Exists(path))
+        {
+            ProcessRunner.OpenUrl(path);
+        }
+    }
 
     private static async Task FlyoutCopy(ImageSource? imageSource)
     {

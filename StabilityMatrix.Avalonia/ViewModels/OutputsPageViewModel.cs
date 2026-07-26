@@ -298,19 +298,44 @@ public partial class OutputsPageViewModel : PageViewModelBase
 
     public async Task ShowImageDialog(OutputImageViewModel item)
     {
-        // If it's a video file, open with system player
-        if (item.ImageFile.IsVideo)
-        {
-            ProcessRunner.OpenUrl(item.ImageFile.AbsolutePath);
-            return;
-        }
-
         var currentIndex = Outputs.IndexOf(item);
 
         var image = new ImageSource(new FilePath(item.ImageFile.AbsolutePath));
 
-        // Preload
-        await image.GetBitmapAsync();
+        if (item.ImageFile.IsVideo)
+        {
+            try
+            {
+                var preview = await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(
+                    item.ImageFile.AbsolutePath
+                );
+                if (preview is not null)
+                {
+                    image.PlaybackFile = new FilePath(preview);
+                }
+
+                var thumb = videoThumbnailService.GetExistingThumbnailPath(item.ImageFile.AbsolutePath)
+                    ?? await videoThumbnailService.GetOrCreateThumbnailAsync(item.ImageFile.AbsolutePath);
+                if (thumb is not null && File.Exists(thumb))
+                {
+                    image.ThumbnailFile = new FilePath(thumb);
+                    await using var stream = File.OpenRead(thumb);
+                    image.Bitmap = new global::Avalonia.Media.Imaging.Bitmap(stream);
+                }
+
+                image.HasAudio = await videoThumbnailService.HasAudioStreamAsync(item.ImageFile.AbsolutePath);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to prepare video preview for viewer");
+            }
+        }
+        else
+        {
+            await image.GetBitmapAsync();
+        }
+
+        await image.GetOrRefreshTemplateKeyAsync();
 
         var vm = vmFactory.Get<ImageViewerViewModel>();
         vm.ImageSource = image;
@@ -337,8 +362,25 @@ public partial class OutputsPageViewModel : PageViewModelBase
                                 new FilePath(newImage.ImageFile.AbsolutePath)
                             );
 
-                            // Preload
-                            await newImageSource.GetBitmapAsync();
+                            if (newImage.ImageFile.IsVideo)
+                            {
+                                var preview =
+                                    await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(
+                                        newImage.ImageFile.AbsolutePath
+                                    );
+                                if (preview is not null)
+                                    newImageSource.PlaybackFile = new FilePath(preview);
+
+                                newImageSource.HasAudio =
+                                    await videoThumbnailService.HasAudioStreamAsync(
+                                        newImage.ImageFile.AbsolutePath
+                                    );
+                            }
+                            else
+                            {
+                                await newImageSource.GetBitmapAsync();
+                            }
+
                             await newImageSource.GetOrRefreshTemplateKeyAsync();
 
                             sender.ImageSource = newImageSource;
@@ -403,11 +445,17 @@ public partial class OutputsPageViewModel : PageViewModelBase
         var itemPath = item.ImageFile.AbsolutePath;
         var pathsToDelete = new List<string> { itemPath };
 
-        // Add .txt sidecar to paths if they exist
+        // Add .txt / .smmeta.json sidecars to paths if they exist
         var sideCar = Path.ChangeExtension(itemPath, ".txt");
         if (File.Exists(sideCar))
         {
             pathsToDelete.Add(sideCar);
+        }
+
+        var metaSidecar = itemPath + ".smmeta.json";
+        if (File.Exists(metaSidecar))
+        {
+            pathsToDelete.Add(metaSidecar);
         }
 
         var vm = vmFactory.Get<ConfirmDeleteDialogViewModel>();
@@ -631,6 +679,28 @@ public partial class OutputsPageViewModel : PageViewModelBase
         SearchQuery = string.Empty;
     }
 
+    private static bool IsHiddenTempVideoOutput(string filePath)
+    {
+        var name = Path.GetFileName(filePath);
+        if (
+            name.StartsWith("InferenceVideoFrames", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("InferenceVideoAudio", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("sm_vid_frames", StringComparison.OrdinalIgnoreCase)
+            || name.Contains("sm_vid_audio", StringComparison.OrdinalIgnoreCase)
+        )
+        {
+            return true;
+        }
+
+        // Comfy SaveImage prefix "temp/sm_vid_*" lands under an output/temp folder
+        var dir = Path.GetDirectoryName(filePath) ?? "";
+        return dir.Contains($"{Path.DirectorySeparatorChar}temp", StringComparison.OrdinalIgnoreCase)
+            && (
+                name.Contains("sm_vid", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("InferenceVideo", StringComparison.OrdinalIgnoreCase)
+            );
+    }
+
     private void GetOutputs(string directory)
     {
         if (!settingsManager.IsLibraryDirSet)
@@ -691,6 +761,7 @@ public partial class OutputsPageViewModel : PageViewModelBase
                         StringComparison.OrdinalIgnoreCase
                     )
                         is false
+                    && !IsHiddenTempVideoOutput(file)
                 )
                 .Select(file => LocalImageFile.FromPath(file))
                 .ToList();

@@ -22,7 +22,11 @@
             <ContentPresenter.ContentTemplate>
                 <controls:DataTemplateSelector x:TypeArguments="models:ImageSourceTemplateType">
                     <DataTemplate x:Key="{x:Static models:ImageSourceTemplateType.WebpAnimation}" DataType="models:ImageSource">
-                        <gif:GifImage SourceUri="{Binding LocalFile.FullPath}" Stretch="Uniform" />
+                        <gif:GifImage SourceUriRaw="{Binding PlaybackPath}" Stretch="Uniform" />
+                    </DataTemplate>
+
+                    <DataTemplate x:Key="{x:Static models:ImageSourceTemplateType.Video}" DataType="models:ImageSource">
+                        <controls:VideoPreviewPanel Source="{Binding}" />
                     </DataTemplate>
 
                     <DataTemplate x:Key="{x:Static models:ImageSourceTemplateType.Image}" DataType="models:ImageSource">

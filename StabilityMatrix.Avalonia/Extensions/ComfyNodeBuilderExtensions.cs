@@ -73,6 +73,22 @@ public static class ComfyNodeBuilderExtensions
                     }
                 )
                 .Output,
+            LatentType.Ltxv => builder
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.EmptyLTXVLatentVideo
+                    {
+                        Name = builder.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.EmptyLTXVLatentVideo)),
+                        BatchSize = batchSize,
+                        Height = height,
+                        Width = width,
+                        Length =
+                            length
+                            ?? throw new ValidationException(
+                                "Length cannot be null when latentType is Ltxv"
+                            ),
+                    }
+                )
+                .Output,
             _ => throw new ArgumentOutOfRangeException(nameof(latentType), latentType, null),
         };
 

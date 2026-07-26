@@ -418,6 +418,38 @@ public class ComfyClient : InferenceClientBase
         return dict;
     }
 
+    public async Task<Dictionary<string, List<ComfyImage>?>> GetAudioForExecutedPromptAsync(
+        string promptId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var history = await comfyApi.GetHistory(promptId, cancellationToken).ConfigureAwait(false);
+        var current = history[promptId];
+
+        var dict = new Dictionary<string, List<ComfyImage>?>();
+        foreach (var (nodeKey, output) in current.Outputs)
+        {
+            dict[nodeKey] = output.Audio;
+        }
+        return dict;
+    }
+
+    public async Task<Dictionary<string, List<string>?>> GetTextsForExecutedPromptAsync(
+        string promptId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var history = await comfyApi.GetHistory(promptId, cancellationToken).ConfigureAwait(false);
+        var current = history[promptId];
+
+        var dict = new Dictionary<string, List<string>?>();
+        foreach (var (nodeKey, output) in current.Outputs)
+        {
+            dict[nodeKey] = output.Text;
+        }
+        return dict;
+    }
+
     public async Task<Stream> GetImageStreamAsync(
         ComfyImage comfyImage,
         CancellationToken cancellationToken = default

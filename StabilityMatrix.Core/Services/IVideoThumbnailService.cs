@@ -26,6 +26,19 @@ public interface IVideoThumbnailService
     Task<string?> GetOrCreateThumbnailAsync(string videoPath, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Get or create a looping animated WebP preview for in-app playback of a video file.
+    /// </summary>
+    Task<string?> GetOrCreateAnimatedPreviewAsync(
+        string videoPath,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Returns true if the media file has at least one audio stream.
+    /// </summary>
+    Task<bool> HasAudioStreamAsync(string videoPath, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets the thumbnail path if it already exists (synchronous, no generation).
     /// Use this for initial display to avoid async delays.
     /// </summary>

@@ -149,6 +149,108 @@ public class VideoThumbnailService(
         }
     }
 
+    /// <inheritdoc />
+    public async Task<string?> GetOrCreateAnimatedPreviewAsync(
+        string videoPath,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (!File.Exists(videoPath))
+        {
+            logger.LogWarning("Video file not found: {VideoPath}", videoPath);
+            return null;
+        }
+
+        if (!await EnsureFfmpegReadyAsync(cancellationToken).ConfigureAwait(false))
+            return null;
+
+        var videoDir = Path.GetDirectoryName(videoPath);
+        if (string.IsNullOrEmpty(videoDir))
+            return null;
+
+        var thumbnailsDir = Path.Combine(videoDir, ".sm-thumbs");
+        Directory.CreateDirectory(thumbnailsDir);
+
+        var previewName = GetAnimatedPreviewName(videoPath);
+        var previewPath = Path.Combine(thumbnailsDir, previewName);
+
+        if (File.Exists(previewPath))
+            return previewPath;
+
+        try
+        {
+            var ok = await GenerateAnimatedPreviewAsync(videoPath, previewPath, cancellationToken)
+                .ConfigureAwait(false);
+            return ok ? previewPath : null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to generate animated preview for {VideoPath}", videoPath);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> HasAudioStreamAsync(
+        string videoPath,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (!File.Exists(videoPath))
+            return false;
+
+        if (!await EnsureFfmpegReadyAsync(cancellationToken).ConfigureAwait(false))
+            return false;
+
+        var ffmpegPath = prerequisiteHelper.FfmpegPath;
+        var args = new ProcessArgsBuilder()
+            .AddArg("-hide_banner")
+            .AddArg("-i")
+            .AddArg(videoPath);
+
+        try
+        {
+            var result = await ProcessRunner
+                .GetProcessResultAsync(ffmpegPath, args.ToProcessArgs())
+                .ConfigureAwait(false);
+            // ffmpeg prints stream info to stderr and exits non-zero when no output file is given
+            var text = $"{result.StandardOutput}\n{result.StandardError}";
+            return text.Contains("Audio:", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to probe audio streams for {VideoPath}", videoPath);
+            return false;
+        }
+    }
+
+    private async Task<bool> EnsureFfmpegReadyAsync(CancellationToken cancellationToken)
+    {
+        if (prerequisiteHelper.IsFfmpegInstalled)
+            return true;
+
+        await FfmpegInstallLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (!prerequisiteHelper.IsFfmpegInstalled)
+            {
+                logger.LogInformation("FFmpeg not installed, downloading...");
+                await prerequisiteHelper.InstallFfmpegIfNecessary().ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to install FFmpeg");
+            return false;
+        }
+        finally
+        {
+            FfmpegInstallLock.Release();
+        }
+
+        return prerequisiteHelper.IsFfmpegInstalled;
+    }
+
     private string GetThumbnailName(string videoPath)
     {
         // Create a hash based on full path and file size for uniqueness
@@ -159,6 +261,66 @@ public class VideoThumbnailService(
         var hashString = Convert.ToHexString(hashBytes)[..16]; // Use first 16 chars
 
         return $"thumb_{hashString}.jpg";
+    }
+
+    private string GetAnimatedPreviewName(string videoPath)
+    {
+        var fileInfo = new FileInfo(videoPath);
+        var hashInput = $"{videoPath}_{fileInfo.Length}_anim";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(hashInput));
+        var hashString = Convert.ToHexString(hashBytes)[..16];
+        return $"preview_{hashString}.webp";
+    }
+
+    private async Task<bool> GenerateAnimatedPreviewAsync(
+        string videoPath,
+        string previewPath,
+        CancellationToken cancellationToken
+    )
+    {
+        var ffmpegPath = prerequisiteHelper.FfmpegPath;
+
+        // High-quality looping animated WebP for in-app gallery playback
+        var args = new ProcessArgsBuilder()
+            .AddArg("-nostdin")
+            .AddArg("-loglevel")
+            .AddArg("error")
+            .AddArg("-hide_banner")
+            .AddArg("-y")
+            .AddArg("-i")
+            .AddArg(videoPath)
+            .AddArg("-an")
+            .AddArg("-c:v")
+            .AddArg("libwebp")
+            .AddArg("-lossless")
+            .AddArg("0")
+            .AddArg("-compression_level")
+            .AddArg("4")
+            .AddArg("-quality")
+            .AddArg("90")
+            .AddArg("-loop")
+            .AddArg("0")
+            .AddArg("-vf")
+            .AddArg("scale='min(1280,iw)':-1:flags=lanczos")
+            .AddArg(previewPath);
+
+        logger.LogInformation("Running FFmpeg animated preview: {FfmpegPath} {Args}", ffmpegPath, args);
+
+        var result = await ProcessRunner
+            .GetProcessResultAsync(ffmpegPath, args.ToProcessArgs())
+            .ConfigureAwait(false);
+
+        if (result.ExitCode != 0)
+        {
+            logger.LogWarning(
+                "FFmpeg animated preview exited with code {ExitCode}: {StdErr}",
+                result.ExitCode,
+                result.StandardError
+            );
+            return false;
+        }
+
+        return File.Exists(previewPath);
     }
 
     private async Task<bool> GenerateThumbnailAsync(

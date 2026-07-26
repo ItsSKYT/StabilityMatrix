@@ -36,7 +36,13 @@ public class InferenceProjectDocument : ICloneable
                 InferenceImageToVideoViewModel => InferenceProjectType.ImageToVideo,
                 InferenceFluxTextToImageViewModel => InferenceProjectType.FluxTextToImage,
                 InferenceWanImageToVideoViewModel => InferenceProjectType.WanImageToVideo,
-                InferenceWanTextToVideoViewModel => InferenceProjectType.WanTextToVideo
+                InferenceWanTextToVideoViewModel => InferenceProjectType.WanTextToVideo,
+                InferenceQwenImageEditViewModel => InferenceProjectType.QwenImageEdit,
+                InferenceFlux2KleinImageEditViewModel => InferenceProjectType.Flux2KleinImageEdit,
+                InferenceImagePromptViewModel => InferenceProjectType.ImagePrompt,
+                InferenceKrea2ImageEditViewModel => InferenceProjectType.Krea2ImageEdit,
+                InferenceLtxvImageToVideoViewModel => InferenceProjectType.LtxvImageToVideo,
+                InferenceLtxvTextToVideoViewModel => InferenceProjectType.LtxvTextToVideo,
             },
             State = loadableModel.SaveStateToJsonObject()
         };

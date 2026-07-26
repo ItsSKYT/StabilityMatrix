@@ -135,5 +135,7 @@ public class WanSamplerCardViewModel : SamplerCardViewModel
             );
             e.Builder.Connections.Primary = kSampler.Output;
         }
+
+        e.Builder.Connections.VideoFrameCount = Length;
     }
 }

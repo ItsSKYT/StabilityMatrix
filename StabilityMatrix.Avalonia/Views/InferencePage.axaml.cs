@@ -71,4 +71,34 @@ public partial class InferencePage : UserControlBase
     {
         (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.WanImageToVideo);
     }
+
+    private void AddTabMenu_QwenImageEdit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.QwenImageEdit);
+    }
+
+    private void AddTabMenu_Flux2KleinImageEdit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.Flux2KleinImageEdit);
+    }
+
+    private void AddTabMenu_ImagePrompt_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.ImagePrompt);
+    }
+
+    private void AddTabMenu_Krea2ImageEdit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.Krea2ImageEdit);
+    }
+
+    private void AddTabMenu_LtxvTextToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvTextToVideo);
+    }
+
+    private void AddTabMenu_LtxvImageToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvImageToVideo);
+    }
 }
