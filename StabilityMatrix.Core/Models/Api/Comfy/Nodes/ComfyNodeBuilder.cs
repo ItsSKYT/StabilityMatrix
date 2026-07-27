@@ -857,7 +857,7 @@ public class ComfyNodeBuilder
 
     public record LTXVEmptyLatentAudio : ComfyTypedNodeBase<LatentNodeConnection>
     {
-        [Range(1, 1000)]
+        [Range(1, int.MaxValue)]
         public int FramesNumber { get; init; } = 97;
 
         [Range(1, 1000)]
