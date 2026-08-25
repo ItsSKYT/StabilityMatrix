@@ -785,6 +785,18 @@ public class ComfyNodeBuilder
         public double Strength { get; init; } = 1.0;
     }
 
+    public record LTXVImgToVideoInplace : ComfyTypedNodeBase<LatentNodeConnection>
+    {
+        public required VAENodeConnection Vae { get; init; }
+        public required ImageNodeConnection Image { get; init; }
+        public required LatentNodeConnection Latent { get; init; }
+
+        [Range(0.0d, 1.0d)]
+        public double Strength { get; init; } = 1.0;
+
+        public bool Bypass { get; init; }
+    }
+
     public record LTXVConditioning
         : ComfyTypedNodeBase<ConditioningNodeConnection, ConditioningNodeConnection>
     {

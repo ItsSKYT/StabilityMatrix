@@ -465,6 +465,11 @@ public partial class LtxvModelCardViewModel(
             return ClientManager.VaeModels.FirstOrDefault(m =>
                     m.FileName.Contains("2.5", StringComparison.OrdinalIgnoreCase)
                     && m.FileName.Contains("video", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("conv", StringComparison.OrdinalIgnoreCase)
+                )
+                ?? ClientManager.VaeModels.FirstOrDefault(m =>
+                    m.FileName.Contains("2.5", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("video", StringComparison.OrdinalIgnoreCase)
                     && m.FileName.Contains("vae", StringComparison.OrdinalIgnoreCase)
                 )
                 ?? ClientManager.VaeModels.FirstOrDefault(m =>

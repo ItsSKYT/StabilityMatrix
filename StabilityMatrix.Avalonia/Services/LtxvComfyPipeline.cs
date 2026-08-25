@@ -38,6 +38,8 @@ public static class LtxvComfyPipeline
         public int ExtraGuideFrameIdx { get; init; }
         public bool AudioOnly { get; init; }
         public bool UseLtx25 { get; init; }
+        public ImageNodeConnection? InplaceImage { get; init; }
+        public double InplaceStrength { get; init; } = 0.7;
     }
 
     public sealed class SampleResult
@@ -45,6 +47,15 @@ public static class LtxvComfyPipeline
         public required LatentNodeConnection VideoLatent { get; init; }
         public LatentNodeConnection? AudioLatent { get; init; }
         public AudioNodeConnection? PassthroughAudio { get; init; }
+    }
+
+    public static (int Width, int Height) Stage1Size(int width, int height, bool useLtx25)
+    {
+        if (!useLtx25)
+            return (width, height);
+
+        static int Align(int value) => Math.Max(64, value / 2 / 32 * 32);
+        return (Align(width), Align(height));
     }
 
     public static SampleResult Sample(SampleArgs args)
@@ -75,6 +86,19 @@ public static class LtxvComfyPipeline
             );
             model = eager.Output;
             e.Builder.Connections.ForceKitchenEager = true;
+        }
+
+        if (args.UseLtx25)
+        {
+            negative = e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.ConditioningZeroOut
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.ConditioningZeroOut)),
+                        Conditioning = positive,
+                    }
+                )
+                .Output;
         }
 
         if (advanced is { EnableGuideImage: true } && advanced.GuideImageCard.ImageSource is not null)
@@ -134,6 +158,19 @@ public static class LtxvComfyPipeline
 
         LatentNodeConnection? audioLatent = null;
         var needsAudio = args.UseNativeAudio || args.EncodedAudioLatent is not null || args.AudioOnly;
+
+        if (args.UseLtx25 && args.InplaceImage is not null)
+        {
+            latent = ApplyImgToVideoInplace(
+                e,
+                args.VideoVae,
+                args.InplaceImage,
+                latent,
+                args.InplaceStrength,
+                bypass: false
+            );
+        }
+
         if (needsAudio)
         {
             audioLatent = args.EncodedAudioLatent ?? CreateEmptyAudioLatent(e, args);
@@ -223,7 +260,17 @@ public static class LtxvComfyPipeline
     )
     {
         var spatialName =
-            advanced.ResolveSpatialUpscaler() ?? "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors";
+            advanced.ResolveSpatialUpscaler() ?? "ltx-2.3-spatial-upscaler-x2-1.1.safetensors";
+
+        var crop = e.Nodes.AddTypedNode(
+            new ComfyNodeBuilder.LTXVCropGuides
+            {
+                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVCropGuides)),
+                Positive = positive,
+                Negative = negative,
+                Latent = videoLatent,
+            }
+        );
 
         var upscaled = ApplyLatentUpscale(e, videoLatent, args.VideoVae, spatialName);
 
@@ -238,6 +285,18 @@ public static class LtxvComfyPipeline
             );
         }
 
+        if (args.InplaceImage is not null)
+        {
+            upscaled = ApplyImgToVideoInplace(
+                e,
+                args.VideoVae,
+                args.InplaceImage,
+                upscaled,
+                strength: 1.0,
+                bypass: false
+            );
+        }
+
         LatentNodeConnection stage2Latent = upscaled;
         if (audioLatent is not null)
             stage2Latent = ConcatAv(e, upscaled, audioLatent);
@@ -245,8 +304,8 @@ public static class LtxvComfyPipeline
         var stage2 = RunLtx25SamplerPass(
             e,
             model,
-            positive,
-            negative,
+            crop.Output1,
+            crop.Output2,
             stage2Latent,
             args.Cfg,
             args.Seed + 1,
@@ -331,6 +390,28 @@ public static class LtxvComfyPipeline
 
         return (stage2, null);
     }
+
+    private static LatentNodeConnection ApplyImgToVideoInplace(
+        ModuleApplyStepEventArgs e,
+        VAENodeConnection vae,
+        ImageNodeConnection image,
+        LatentNodeConnection latent,
+        double strength,
+        bool bypass
+    ) =>
+        e
+            .Nodes.AddTypedNode(
+                new ComfyNodeBuilder.LTXVImgToVideoInplace
+                {
+                    Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVImgToVideoInplace)),
+                    Vae = vae,
+                    Image = image,
+                    Latent = latent,
+                    Strength = strength,
+                    Bypass = bypass,
+                }
+            )
+            .Output;
 
     private static LatentNodeConnection ApplyLatentUpscale(
         ModuleApplyStepEventArgs e,
@@ -472,14 +553,13 @@ public static class LtxvComfyPipeline
     {
         var videoCfg = cfg > 0 ? cfg : 1.0;
         var guider = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.LTXVDualCFGGuider
+            new ComfyNodeBuilder.CFGGuider
             {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVDualCFGGuider)),
+                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CFGGuider)),
                 Model = model,
                 Positive = positive,
                 Negative = negative,
-                VideoCfg = videoCfg,
-                AudioCfg = videoCfg,
+                Cfg = videoCfg,
             }
         );
 
@@ -495,7 +575,7 @@ public static class LtxvComfyPipeline
             new ComfyNodeBuilder.KSamplerSelect
             {
                 Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.KSamplerSelect)),
-                SamplerName = ComfySampler.EulerAncestral.Name,
+                SamplerName = ComfySampler.Euler.Name,
             }
         );
 

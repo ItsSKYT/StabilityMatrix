@@ -34,7 +34,7 @@
                         <CheckBox
                             Content="Two-stage spatial upscale"
                             IsChecked="{Binding EnableTwoStage}"
-                            ToolTip.Tip="2.3: low-res + upscaler + distilled LoRA. 2.5: always used (official ComfyUI ManualSigmas refine, no distilled LoRA). Resolution is stage 1; output is ×2." />
+                            ToolTip.Tip="2.3: low-res + upscaler + distilled LoRA. 2.5: always on (MMH3 workflow: CropGuides + ltx-2.3 spatial ×2 + 3-step ManualSigmas). UI resolution is final; stage 1 runs at half size." />
                         <StackPanel
                             Margin="16,0,0,0"
                             IsVisible="{Binding ShowTwoStageSettings}"

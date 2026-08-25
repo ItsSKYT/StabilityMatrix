@@ -141,9 +141,14 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
 
         ModelCardViewModel.ApplyStep(applyArgs);
 
-        builder.SetupEmptyLatentSource(
+        var (latentW, latentH) = LtxvComfyPipeline.Stage1Size(
             SamplerCardViewModel.Width,
             SamplerCardViewModel.Height,
+            ModelCardViewModel.IsLtx25
+        );
+        builder.SetupEmptyLatentSource(
+            latentW,
+            latentH,
             BatchSizeCardViewModel.BatchSize,
             BatchSizeCardViewModel.IsBatchIndexEnabled ? BatchSizeCardViewModel.BatchIndex : null,
             SamplerCardViewModel.Length,

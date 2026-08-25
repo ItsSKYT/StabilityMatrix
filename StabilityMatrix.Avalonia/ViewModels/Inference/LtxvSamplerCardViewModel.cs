@@ -68,13 +68,51 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
 
         var conditioning = e.Temp.Base.Conditioning.Unwrap();
         var model = e.Temp.Base.Model!.Unwrap();
+        var useLtx25 = e.Builder.Connections.UseLtx25;
         var isImgToVid = IsDenoiseStrengthEnabled;
 
         LatentNodeConnection latent;
         var positive = conditioning.Positive;
         var negative = conditioning.Negative;
+        ImageNodeConnection? inplaceImage = null;
 
-        if (isImgToVid)
+        if (useLtx25)
+        {
+            if (isImgToVid)
+            {
+                var (stageW, stageH) = LtxvComfyPipeline.Stage1Size(Width, Height, true);
+                latent = e
+                    .Nodes.AddTypedNode(
+                        new ComfyNodeBuilder.EmptyLTXVLatentVideo
+                        {
+                            Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.EmptyLTXVLatentVideo)),
+                            Width = stageW,
+                            Height = stageH,
+                            Length = Length,
+                            BatchSize = e.Builder.Connections.BatchSize,
+                        }
+                    )
+                    .Output;
+
+                var preprocess = e.Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.LTXVPreprocess
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVPreprocess)),
+                        Image = e.Builder.GetPrimaryAsImage(),
+                        ImgCompression = 18,
+                    }
+                );
+                inplaceImage = preprocess.Output;
+            }
+            else
+            {
+                latent = e.Builder.GetPrimaryAsLatent(
+                    e.Temp.Primary!.Unwrap(),
+                    e.Builder.Connections.GetDefaultVAE()
+                );
+            }
+        }
+        else if (isImgToVid)
         {
             var preprocess = e.Nodes.AddTypedNode(
                 new ComfyNodeBuilder.LTXVPreprocess
@@ -137,7 +175,9 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
                 Advanced = AdvancedOptions,
                 ExtraGuideImage = ExtraGuideImage,
                 ExtraGuideFrameIdx = ExtraGuideFrameIdx,
-                UseLtx25 = e.Builder.Connections.UseLtx25,
+                UseLtx25 = useLtx25,
+                InplaceImage = inplaceImage,
+                InplaceStrength = DenoiseStrength,
             }
         );
 

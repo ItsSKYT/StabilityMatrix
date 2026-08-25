@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -102,7 +103,9 @@ public partial class LtxvAdvancedOptionsCardViewModel : LoadableViewModelBase
             .AllModels.Concat(ClientManager.UnetModels)
             .Select(m => m.RelativePath)
             .FirstOrDefault(p =>
-                p.Contains("latent-spatial-upscaler", StringComparison.OrdinalIgnoreCase)
+                p.Contains("ltx-2.3-spatial-upscaler", StringComparison.OrdinalIgnoreCase)
+                || p.Contains("spatial-upscaler-x2", StringComparison.OrdinalIgnoreCase)
+                || p.Contains("latent-spatial-upscaler", StringComparison.OrdinalIgnoreCase)
                 || p.Contains("spatial-upscaler", StringComparison.OrdinalIgnoreCase)
                 || p.Contains("spatial_upscaler", StringComparison.OrdinalIgnoreCase)
             );
