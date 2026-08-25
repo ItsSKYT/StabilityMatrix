@@ -26,6 +26,8 @@ namespace StabilityMatrix.Avalonia.ViewModels.Inference;
 [RegisterScoped<InferenceKrea2ImageEditViewModel>, ManagedService]
 public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase, IParametersLoadableState
 {
+    private const int DefaultGroundingPx = 1024;
+
     private readonly INotificationService notificationService;
 
     [JsonIgnore]
@@ -46,8 +48,24 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
     [JsonPropertyName("Prompt")]
     public PromptCardViewModel PromptCardViewModel { get; }
 
+    /// <summary>Reference 1 (required).</summary>
     [JsonPropertyName("ImageLoader")]
     public SelectImageCardViewModel SelectImageCardViewModel { get; }
+
+    [JsonPropertyName("ImageLoader2")]
+    public SelectImageCardViewModel SelectImageCardViewModel2 { get; }
+
+    [JsonPropertyName("ImageLoader3")]
+    public SelectImageCardViewModel SelectImageCardViewModel3 { get; }
+
+    [JsonPropertyName("ImageLoader4")]
+    public SelectImageCardViewModel SelectImageCardViewModel4 { get; }
+
+    [JsonPropertyName("ImageLoader5")]
+    public SelectImageCardViewModel SelectImageCardViewModel5 { get; }
+
+    [JsonIgnore]
+    public IReadOnlyList<SelectImageCardViewModel> ReferenceImageCards { get; }
 
     public InferenceKrea2ImageEditViewModel(
         IServiceManager<ViewModelBase> vmFactory,
@@ -69,7 +87,7 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
         SamplerCardViewModel = vmFactory.Get<SamplerCardViewModel>(samplerCard =>
         {
             samplerCard.IsDimensionsEnabled = true;
-            samplerCard.IsCfgScaleEnabled = false;
+            samplerCard.IsCfgScaleEnabled = true;
             samplerCard.IsSamplerSelectionEnabled = true;
             samplerCard.IsSchedulerSelectionEnabled = true;
             samplerCard.IsDenoiseStrengthEnabled = true;
@@ -79,21 +97,28 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
             samplerCard.SelectedSampler = ComfySampler.Euler;
             samplerCard.SelectedScheduler = ComfyScheduler.Simple;
             samplerCard.Steps = 8;
+            samplerCard.CfgScale = 1.0d;
             samplerCard.Width = 1024;
             samplerCard.Height = 1024;
         });
 
-        PromptCardViewModel = AddDisposable(
-            vmFactory.Get<PromptCardViewModel>(vm =>
-            {
-                vm.IsNegativePromptEnabled = false;
-            })
-        );
+        PromptCardViewModel = AddDisposable(vmFactory.Get<PromptCardViewModel>());
         BatchSizeCardViewModel = vmFactory.Get<BatchSizeCardViewModel>();
-        SelectImageCardViewModel = vmFactory.Get<SelectImageCardViewModel>(vm =>
-        {
-            vm.SyncBitmapSizeToTabContext = true;
-        });
+
+        SelectImageCardViewModel = CreateImageCard(vmFactory, syncSize: true);
+        SelectImageCardViewModel2 = CreateImageCard(vmFactory);
+        SelectImageCardViewModel3 = CreateImageCard(vmFactory);
+        SelectImageCardViewModel4 = CreateImageCard(vmFactory);
+        SelectImageCardViewModel5 = CreateImageCard(vmFactory);
+
+        ReferenceImageCards =
+        [
+            SelectImageCardViewModel,
+            SelectImageCardViewModel2,
+            SelectImageCardViewModel3,
+            SelectImageCardViewModel4,
+            SelectImageCardViewModel5,
+        ];
 
         StackCardViewModel = vmFactory.Get<StackCardViewModel>();
         StackCardViewModel.AddCards(
@@ -103,6 +128,15 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
             BatchSizeCardViewModel
         );
     }
+
+    private static SelectImageCardViewModel CreateImageCard(
+        IServiceManager<ViewModelBase> vmFactory,
+        bool syncSize = false
+    ) =>
+        vmFactory.Get<SelectImageCardViewModel>(vm =>
+        {
+            vm.SyncBitmapSizeToTabContext = syncSize;
+        });
 
     /// <inheritdoc />
     protected override void BuildPrompt(BuildPromptEventArgs args)
@@ -183,110 +217,200 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
         builder.Connections.Base.VAE = vae;
         builder.Connections.PrimaryVAE = vae;
 
-        if (ModelCardViewModel.ExtraNetworksStackCardViewModel.Cards.OfType<LoraModule>().Any(x => x.IsEnabled))
+        // Identity-edit LoRAs are UNet-only; applying CLIP strength fries Qwen3-VL conditioning.
+        foreach (var loraModule in ModelCardViewModel.ExtraNetworksStackCardViewModel.Cards.OfType<LoraModule>())
         {
-            ModelCardViewModel.ExtraNetworksStackCardViewModel.ApplyStep(applyArgs);
-            model = builder.Connections.Base.Model!;
-            clip = builder.Connections.Base.Clip!;
+            if (!loraModule.IsEnabled)
+                continue;
+
+            var card = loraModule.GetCard<ExtraNetworkCardViewModel>();
+            if (card.SelectedModel?.RelativePath is not { } loraPath)
+                continue;
+
+            var loraLoader = nodes.AddNamedNode(
+                ComfyNodeBuilder.LoraLoaderModelOnly(
+                    nodes.GetUniqueName("LoraLoaderModelOnly"),
+                    model,
+                    loraPath,
+                    card.ModelWeight
+                )
+            );
+            model = loraLoader.Output;
+            builder.Connections.Base.Model = model;
         }
 
         var positivePrompt = PromptCardViewModel.GetPrompt();
         positivePrompt.Process();
+        var negativePrompt = PromptCardViewModel.GetNegativePrompt();
+        negativePrompt.Process();
 
-        var imageSource =
-            SelectImageCardViewModel.ImageSource
-            ?? throw new ValidationException("No image selected");
-        var loadImage = nodes.AddTypedNode(
-            new ComfyNodeBuilder.LoadImage
-            {
-                Name = nodes.GetUniqueName("LoadImage"),
-                Image = imageSource.GetHashGuidFileNameCached("Inference"),
-            }
+        var refImages = GetSelectedReferenceImages().ToList();
+        if (refImages.Count == 0)
+            throw new ValidationException("No image selected");
+
+        // Match output canvas to primary reference — AR mismatch + fit mode caused rainbow noise.
+        var primarySize = SelectImageCardViewModel.CurrentBitmapSize;
+        var width = AlignDimension(
+            primarySize.Width > 0 ? primarySize.Width : SamplerCardViewModel.Width
+        );
+        var height = AlignDimension(
+            primarySize.Height > 0 ? primarySize.Height : SamplerCardViewModel.Height
         );
 
-        var editConditioning = nodes
-            .AddTypedNode(
-                new ComfyNodeBuilder.Krea2EditRebalance
+        var loadedImages = new ImageNodeConnection[refImages.Count];
+        var latents = new LatentNodeConnection[refImages.Count];
+
+        for (var i = 0; i < refImages.Count; i++)
+        {
+            var loadImage = nodes.AddTypedNode(
+                new ComfyNodeBuilder.LoadImage
                 {
-                    Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.Krea2EditRebalance)),
-                    Text = positivePrompt.ProcessedText ?? string.Empty,
-                    Clip = clip,
-                    Steering = 1.0,
-                    LayerMultiplier = 1.0,
-                    EnableStep = true,
-                    Image1 = loadImage.Output1,
-                    Image1Tokens = "normal",
+                    Name = nodes.GetUniqueName($"LoadImage_Ref{i + 1}"),
+                    Image = refImages[i].GetHashGuidFileNameCached("Inference"),
                 }
+            );
+            loadedImages[i] = loadImage.Output1;
+
+            latents[i] = nodes
+                .AddTypedNode(
+                    new ComfyNodeBuilder.VAEEncode
+                    {
+                        Name = nodes.GetUniqueName($"VAEEncode_Ref{i + 1}"),
+                        Pixels = loadImage.Output1,
+                        Vae = vae,
+                    }
+                )
+                .Output;
+        }
+
+        var positiveEncode = nodes.AddTypedNode(
+            BuildGroundedEncode(
+                nodes.GetUniqueName("Krea2EditGroundedEncode_Positive"),
+                clip,
+                positivePrompt.ProcessedText ?? string.Empty,
+                loadedImages
             )
-            .Output;
+        );
+
+        var negativeEncode = nodes.AddTypedNode(
+            BuildGroundedEncode(
+                nodes.GetUniqueName("Krea2EditGroundedEncode_Negative"),
+                clip,
+                negativePrompt.ProcessedText ?? string.Empty,
+                loadedImages
+            )
+        );
 
         var emptyLatent = nodes.AddTypedNode(
-            new ComfyNodeBuilder.EmptyLatentImage
+            new ComfyNodeBuilder.EmptySD3LatentImage
             {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.EmptyLatentImage)),
-                Width = SamplerCardViewModel.Width,
-                Height = SamplerCardViewModel.Height,
+                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.EmptySD3LatentImage)),
+                Width = width,
+                Height = height,
                 BatchSize = builder.Connections.BatchSize,
             }
         );
 
-        var guider = nodes.AddTypedNode(
-            new ComfyNodeBuilder.BasicGuider
-            {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.BasicGuider)),
-                Model = model,
-                Conditioning = editConditioning,
-            }
-        );
+        model = nodes
+            .AddTypedNode(
+                BuildModelPatch(
+                    nodes.GetUniqueName("Krea2EditModelPatch"),
+                    model,
+                    vae,
+                    latents,
+                    loadedImages
+                )
+            )
+            .Output;
 
-        var scheduler = nodes.AddTypedNode(
-            new ComfyNodeBuilder.BasicScheduler
+        var sampler = nodes.AddTypedNode(
+            new ComfyNodeBuilder.KSampler
             {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.BasicScheduler)),
+                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.KSampler)),
                 Model = model,
+                Seed = builder.Connections.Seed,
+                Steps = SamplerCardViewModel.Steps,
+                Cfg = SamplerCardViewModel.CfgScale,
+                SamplerName =
+                    SamplerCardViewModel.SelectedSampler?.Name
+                    ?? throw new ValidationException("Sampler not selected"),
                 Scheduler =
                     SamplerCardViewModel.SelectedScheduler?.Name
                     ?? throw new ValidationException("Scheduler not selected"),
-                Steps = SamplerCardViewModel.Steps,
+                Positive = positiveEncode.Output,
+                Negative = negativeEncode.Output,
+                LatentImage = emptyLatent.Output,
                 Denoise = SamplerCardViewModel.DenoiseStrength,
             }
         );
 
-        var samplerSelect = nodes.AddTypedNode(
-            new ComfyNodeBuilder.KSamplerSelect
-            {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.KSamplerSelect)),
-                SamplerName =
-                    SamplerCardViewModel.SelectedSampler?.Name
-                    ?? throw new ValidationException("Sampler not selected"),
-            }
-        );
-
-        var randomNoise = nodes.AddTypedNode(
-            new ComfyNodeBuilder.RandomNoise
-            {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.RandomNoise)),
-                NoiseSeed = builder.Connections.Seed,
-            }
-        );
-
-        var sampler = nodes.AddTypedNode(
-            new ComfyNodeBuilder.SamplerCustomAdvanced
-            {
-                Name = nodes.GetUniqueName(nameof(ComfyNodeBuilder.SamplerCustomAdvanced)),
-                Noise = randomNoise.Output,
-                Guider = guider.Output,
-                Sampler = samplerSelect.Output,
-                Sigmas = scheduler.Output,
-                LatentImage = emptyLatent.Output,
-            }
-        );
-
-        builder.Connections.Primary = sampler.Output1;
+        builder.Connections.Primary = sampler.Output;
 
         applyArgs.InvokeAllPreOutputActions();
         builder.SetupOutputImage();
     }
+
+    private static ComfyNodeBuilder.Krea2EditGroundedEncode BuildGroundedEncode(
+        string name,
+        ClipNodeConnection clip,
+        string prompt,
+        IReadOnlyList<ImageNodeConnection> images
+    ) =>
+        new()
+        {
+            Name = name,
+            Clip = clip,
+            Prompt = prompt,
+            GroundingPx = DefaultGroundingPx,
+            Image = images.ElementAtOrDefault(0),
+            ImageB = images.ElementAtOrDefault(1),
+            ImageC = images.ElementAtOrDefault(2),
+            ImageD = images.ElementAtOrDefault(3),
+            ImageE = images.ElementAtOrDefault(4),
+        };
+
+    private static ComfyNodeBuilder.Krea2EditModelPatch BuildModelPatch(
+        string name,
+        ModelNodeConnection model,
+        VAENodeConnection vae,
+        IReadOnlyList<LatentNodeConnection> latents,
+        IReadOnlyList<ImageNodeConnection> images
+    ) =>
+        new()
+        {
+            Name = name,
+            Model = model,
+            Vae = vae,
+            // Matched source size uses crop; fit with large AR mismatch rainbow-noise'd on the 5-ref fork.
+            FitMode = "crop (legacy)",
+            RefBoost = 1.0,
+            RefBoostB = 1.0,
+            RefBoostC = 1.0,
+            RefBoostD = 1.0,
+            RefBoostE = 1.0,
+            SourceLatent = latents.ElementAtOrDefault(0),
+            SourceLatentB = latents.ElementAtOrDefault(1),
+            SourceLatentC = latents.ElementAtOrDefault(2),
+            SourceLatentD = latents.ElementAtOrDefault(3),
+            SourceLatentE = latents.ElementAtOrDefault(4),
+            SourceImage = images.ElementAtOrDefault(0),
+            SourceImageB = images.ElementAtOrDefault(1),
+            SourceImageC = images.ElementAtOrDefault(2),
+            SourceImageD = images.ElementAtOrDefault(3),
+            SourceImageE = images.ElementAtOrDefault(4),
+        };
+
+    private IEnumerable<ImageSource> GetSelectedReferenceImages()
+    {
+        foreach (var card in ReferenceImageCards)
+        {
+            if (card.ImageSource is { } image)
+                yield return image;
+        }
+    }
+
+    /// <summary>Wan/Krea2 latent grid requires multiples of 16.</summary>
+    private static int AlignDimension(int value) => Math.Max(16, value / 16 * 16);
 
     /// <inheritdoc />
     protected override async Task GenerateImageImpl(
@@ -304,7 +428,11 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
 
         if (SelectImageCardViewModel.ImageSource is null)
         {
-            notificationService.Show("No Image", "Please select an image to edit.", NotificationType.Warning);
+            notificationService.Show(
+                "No Image",
+                "Please select at least one reference image.",
+                NotificationType.Warning
+            );
             return;
         }
 
@@ -373,13 +501,7 @@ public class InferenceKrea2ImageEditViewModel : InferenceGenerationViewModelBase
     }
 
     /// <inheritdoc />
-    protected override IEnumerable<ImageSource> GetInputImages()
-    {
-        if (SelectImageCardViewModel.ImageSource is { } image)
-        {
-            yield return image;
-        }
-    }
+    protected override IEnumerable<ImageSource> GetInputImages() => GetSelectedReferenceImages();
 
     /// <inheritdoc />
     public void LoadStateFromParameters(GenerationParameters parameters)

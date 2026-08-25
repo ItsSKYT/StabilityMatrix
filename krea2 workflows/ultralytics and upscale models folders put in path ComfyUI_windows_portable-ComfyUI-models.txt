@@ -1,0 +1,1 @@
+ultralytics and upscale models folders put in path ComfyUI_windows_portable/ComfyUI/models

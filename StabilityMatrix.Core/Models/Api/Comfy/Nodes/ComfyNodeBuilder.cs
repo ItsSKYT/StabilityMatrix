@@ -1044,32 +1044,61 @@ public class ComfyNodeBuilder
     }
 
     /// <summary>
-    /// Krea 2 image-edit encode with layer rebalance (ComfyUI-Conditioning-Rebalance).
-    /// Vision tokens go through the krea2 CLIP; no VAE in the encode path.
+    /// Image-grounded instruction encode for Krea 2 Identity Edit (comfyui-krea2edit).
+    /// Supports up to 5 reference images.
     /// </summary>
     [TypedNodeOptions(
-        Name = "Krea2EditRebalance",
-        RequiredExtensions = ["https://github.com/nova452/ComfyUI-ConditioningKrea2Rebalance"]
+        Name = "Krea2EditGroundedEncode",
+        RequiredExtensions = ["https://github.com/lbouaraba/comfyui-krea2edit"]
     )]
-    public record Krea2EditRebalance : ComfyTypedNodeBase<ConditioningNodeConnection>
+    public record Krea2EditGroundedEncode : ComfyTypedNodeBase<ConditioningNodeConnection>
     {
-        public required string Text { get; init; }
         public required ClipNodeConnection Clip { get; init; }
+        public required string Prompt { get; init; }
 
-        [Range(-2.0d, 2.0d)]
-        public double Steering { get; init; } = 1.0;
+        public ImageNodeConnection? Image { get; init; }
+        public ImageNodeConnection? ImageB { get; init; }
+        public ImageNodeConnection? ImageC { get; init; }
+        public ImageNodeConnection? ImageD { get; init; }
+        public ImageNodeConnection? ImageE { get; init; }
 
-        public double LayerMultiplier { get; init; } = 1.0;
-        public bool EnableStep { get; init; } = true;
+        public int GroundingPx { get; init; } = 768;
+        public string? SystemPrompt { get; init; }
+    }
 
-        public ImageNodeConnection? Image1 { get; init; }
-        public string Image1Tokens { get; init; } = "normal";
-        public ImageNodeConnection? Image2 { get; init; }
-        public string? Image2Tokens { get; init; }
-        public ImageNodeConnection? Image3 { get; init; }
-        public string? Image3Tokens { get; init; }
-        public ImageNodeConnection? Image4 { get; init; }
-        public string? Image4Tokens { get; init; }
+    /// <summary>
+    /// Patches Krea 2 with in-context source latents/images (comfyui-krea2edit).
+    /// Supports up to 5 references.
+    /// </summary>
+    [TypedNodeOptions(
+        Name = "Krea2EditModelPatch",
+        RequiredExtensions = ["https://github.com/lbouaraba/comfyui-krea2edit"]
+    )]
+    public record Krea2EditModelPatch : ComfyTypedNodeBase<ModelNodeConnection>
+    {
+        public required ModelNodeConnection Model { get; init; }
+
+        public LatentNodeConnection? SourceLatent { get; init; }
+        public LatentNodeConnection? SourceLatentB { get; init; }
+        public LatentNodeConnection? SourceLatentC { get; init; }
+        public LatentNodeConnection? SourceLatentD { get; init; }
+        public LatentNodeConnection? SourceLatentE { get; init; }
+
+        public VAENodeConnection? Vae { get; init; }
+        public ImageNodeConnection? SourceImage { get; init; }
+        public ImageNodeConnection? SourceImageB { get; init; }
+        public ImageNodeConnection? SourceImageC { get; init; }
+        public ImageNodeConnection? SourceImageD { get; init; }
+        public ImageNodeConnection? SourceImageE { get; init; }
+
+        public double RefBoost { get; init; } = 1.0;
+        public double RefBoostB { get; init; } = 1.0;
+        public double RefBoostC { get; init; } = 1.0;
+        public double RefBoostD { get; init; } = 1.0;
+        public double RefBoostE { get; init; } = 1.0;
+
+        public string FitMode { get; init; } = "fit";
+        public LatentNodeConnection? TargetLatent { get; init; }
     }
 
     public record RescaleCFG : ComfyTypedNodeBase<ModelNodeConnection>

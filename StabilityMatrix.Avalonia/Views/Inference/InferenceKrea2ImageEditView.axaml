@@ -71,20 +71,32 @@
                             Proportion="0.25">
                             <Tool
                                 x:Name="ImageTool"
-                                Title="Image"
+                                Title="References"
                                 x:DataType="Tool"
                                 CanClose="False"
                                 Id="ImageTool">
 
-                                <!--  Prompt and buttons  -->
-                                <Grid
+                                <ScrollViewer
                                     x:CompileBindings="False"
                                     DataContext="{Binding ElementName=Dock, Path=DataContext}"
-                                    Opacity="1"
-                                    RowDefinitions="*">
-                                    <!--  Prompt card  -->
-                                    <controls:SelectImageCard x:CompileBindings="False" DataContext="{Binding SelectImageCardViewModel}" />
-                                </Grid>
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding ReferenceImageCards}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="2" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="inference:SelectImageCardViewModel">
+                                                <controls:SelectImageCard
+                                                    Margin="2"
+                                                    MinHeight="140"
+                                                    DataContext="{Binding}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
 
                             </Tool>
                         </ToolDock>
