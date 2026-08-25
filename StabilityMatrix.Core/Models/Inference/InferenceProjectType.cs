@@ -15,6 +15,7 @@ public enum InferenceProjectType
     Flux2KleinImageEdit,
     ImagePrompt,
     Krea2ImageEdit,
+    AnimaImageEdit,
     LtxvTextToVideo,
     LtxvImageToVideo,
     LtxvAudioToVideo,

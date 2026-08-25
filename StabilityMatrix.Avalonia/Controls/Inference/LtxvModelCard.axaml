@@ -30,7 +30,7 @@
                             HorizontalAlignment="Stretch"
                             ItemsSource="{Binding VersionOptions}"
                             SelectedItem="{Binding SelectedVersionLabel}"
-                            ToolTip.Tip="LTX 2.3: DualCLIP + text projection. LTX 2.5: graf z ltx25MMH3Krea2Ideogram_ltx25Pruned83Fast (CLIPLoader Gemma4-with-proj, CFGGuider, euler, ManualSigmas, ImgToVideoInplace, CropGuides, spatial ×2)." />
+                            ToolTip.Tip="LTX 2.3: DualCLIP + text projection. LTX 2.5: CLIPLoader Gemma, CFGGuider, I2V ImgToVideoInplace. Two-stage (CropGuides + spatial ×2) is optional in LTX Advanced." />
 
                         <TextBlock
                             Grid.Row="1"

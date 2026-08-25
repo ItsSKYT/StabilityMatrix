@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using StabilityMatrix.Avalonia.Models;
 using StabilityMatrix.Avalonia.Models.Inference;
 using StabilityMatrix.Avalonia.ViewModels.Inference;
@@ -49,9 +50,12 @@ public static class LtxvComfyPipeline
         public AudioNodeConnection? PassthroughAudio { get; init; }
     }
 
-    public static (int Width, int Height) Stage1Size(int width, int height, bool useLtx25)
+    public static bool UseHalfResStage1(bool useLtx25, LtxvAdvancedOptionsCardViewModel? advanced) =>
+        useLtx25 && advanced is { EnableTwoStage: true };
+
+    public static (int Width, int Height) Stage1Size(int width, int height, bool halfRes)
     {
-        if (!useLtx25)
+        if (!halfRes)
             return (width, height);
 
         static int Align(int value) => Math.Max(64, value / 2 / 32 * 32);
@@ -177,28 +181,17 @@ public static class LtxvComfyPipeline
             latent = ConcatAv(e, latent, audioLatent);
         }
 
-        var sampled = args.UseLtx25
-            ? RunLtx25SamplerPass(
-                e,
-                model,
-                positive,
-                negative,
-                latent,
-                args.Cfg,
-                args.Seed,
-                Ltx25Stage1Sigmas
-            )
-            : RunSamplerPass(
-                e,
-                model,
-                positive,
-                negative,
-                latent,
-                args.Sampler,
-                args.Steps,
-                args.Cfg,
-                args.Seed
-            );
+        var sampled = RunSamplerPass(
+            e,
+            model,
+            positive,
+            negative,
+            latent,
+            args.Sampler,
+            args.Steps,
+            args.Cfg,
+            args.Seed
+        );
 
         LatentNodeConnection videoOut;
         LatentNodeConnection? audioOut = null;
@@ -214,7 +207,7 @@ public static class LtxvComfyPipeline
             videoOut = sampled;
         }
 
-        var runTwoStage = advanced is { EnableTwoStage: true } || args.UseLtx25;
+        var runTwoStage = advanced is { EnableTwoStage: true };
 
         if (runTwoStage && advanced is not null)
         {
@@ -243,11 +236,6 @@ public static class LtxvComfyPipeline
         };
     }
 
-    private const string Ltx25Stage1Sigmas =
-        "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0";
-
-    private const string Ltx25Stage2Sigmas = "0.85, 0.7250, 0.4219, 0.0";
-
     private static (LatentNodeConnection video, LatentNodeConnection? audio) RunLtx25TwoStage(
         ModuleApplyStepEventArgs e,
         ModelNodeConnection model,
@@ -260,7 +248,10 @@ public static class LtxvComfyPipeline
     )
     {
         var spatialName =
-            advanced.ResolveSpatialUpscaler() ?? "ltx-2.3-spatial-upscaler-x2-1.1.safetensors";
+            Path.GetFileName(
+                advanced.ResolveSpatialUpscaler()
+                    ?? "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+            );
 
         var crop = e.Nodes.AddTypedNode(
             new ComfyNodeBuilder.LTXVCropGuides
@@ -301,15 +292,16 @@ public static class LtxvComfyPipeline
         if (audioLatent is not null)
             stage2Latent = ConcatAv(e, upscaled, audioLatent);
 
-        var stage2 = RunLtx25SamplerPass(
+        var stage2 = RunSamplerPass(
             e,
             model,
             crop.Output1,
             crop.Output2,
             stage2Latent,
+            args.Sampler,
+            Math.Max(1, advanced.Stage2Steps),
             args.Cfg,
-            args.Seed + 1,
-            Ltx25Stage2Sigmas
+            args.Seed + 1
         );
 
         if (audioLatent is not null)
@@ -424,7 +416,7 @@ public static class LtxvComfyPipeline
             new ComfyNodeBuilder.LatentUpscaleModelLoader
             {
                 Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LatentUpscaleModelLoader)),
-                ModelName = modelName,
+                ModelName = Path.GetFileName(modelName),
             }
         );
 
@@ -538,68 +530,6 @@ public static class LtxvComfyPipeline
             }
         );
         return (sep.Output1, sep.Output2);
-    }
-
-    private static LatentNodeConnection RunLtx25SamplerPass(
-        ModuleApplyStepEventArgs e,
-        ModelNodeConnection model,
-        ConditioningNodeConnection positive,
-        ConditioningNodeConnection negative,
-        LatentNodeConnection latent,
-        double cfg,
-        ulong seed,
-        string sigmas
-    )
-    {
-        var videoCfg = cfg > 0 ? cfg : 1.0;
-        var guider = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.CFGGuider
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CFGGuider)),
-                Model = model,
-                Positive = positive,
-                Negative = negative,
-                Cfg = videoCfg,
-            }
-        );
-
-        var manualSigmas = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.ManualSigmas
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.ManualSigmas)),
-                Sigmas = sigmas,
-            }
-        );
-
-        var samplerSelect = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.KSamplerSelect
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.KSamplerSelect)),
-                SamplerName = ComfySampler.Euler.Name,
-            }
-        );
-
-        var noise = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.RandomNoise
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.RandomNoise)),
-                NoiseSeed = seed,
-            }
-        );
-
-        return e
-            .Nodes.AddTypedNode(
-                new ComfyNodeBuilder.SamplerCustomAdvanced
-                {
-                    Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.SamplerCustomAdvanced)),
-                    Noise = noise.Output,
-                    Guider = guider.Output,
-                    Sampler = samplerSelect.Output,
-                    Sigmas = manualSigmas.Output,
-                    LatentImage = latent,
-                }
-            )
-            .Output1;
     }
 
     private static LatentNodeConnection RunSamplerPass(

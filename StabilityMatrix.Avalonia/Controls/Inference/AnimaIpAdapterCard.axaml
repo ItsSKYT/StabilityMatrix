@@ -1,0 +1,47 @@
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:StabilityMatrix.Avalonia.Controls"
+    xmlns:inference="clr-namespace:StabilityMatrix.Avalonia.ViewModels.Inference"
+    x:DataType="inference:AnimaIpAdapterCardViewModel">
+    <Style Selector="controls|AnimaIpAdapterCard">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <controls:Card Padding="8">
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="DemiBold"
+                            Text="Anima IP-Adapter" />
+                        <CheckBox Content="Lock face / identity" IsChecked="{Binding IsEnabled}" />
+                        <StackPanel IsVisible="{Binding IsEnabled}" Spacing="8">
+                            <controls:BetterComboBox
+                                HorizontalAlignment="Stretch"
+                                ItemsSource="{Binding IpAdapterModels}"
+                                SelectedItem="{Binding SelectedIpAdapter}"
+                                Theme="{StaticResource BetterComboBoxHybridModelTheme}" />
+                            <StackPanel Spacing="2">
+                                <TextBlock Opacity="0.8" Text="{Binding Strength, StringFormat=Strength: {0:0.00}}" />
+                                <Slider
+                                    Maximum="2"
+                                    Minimum="0"
+                                    TickFrequency="0.05"
+                                    Value="{Binding Strength}" />
+                            </StackPanel>
+                            <StackPanel Spacing="2">
+                                <TextBlock Opacity="0.8" Text="{Binding IpCfgScale, StringFormat=IP CFG: {0:0.00}}" />
+                                <Slider
+                                    Maximum="10"
+                                    Minimum="1"
+                                    TickFrequency="0.05"
+                                    Value="{Binding IpCfgScale}" />
+                            </StackPanel>
+                            <CheckBox Content="Auto-download SigLIP2" IsChecked="{Binding AutoDownloadSiglip}" />
+                            <CheckBox Content="Use IP LoRA" IsChecked="{Binding UseLora}" />
+                        </StackPanel>
+                    </StackPanel>
+                </controls:Card>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

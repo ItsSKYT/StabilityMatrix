@@ -90,6 +90,7 @@
         <StyleInclude Source="Controls/Inference/SelectAudioCard.axaml" />
         <StyleInclude Source="Controls/Inference/SelectVideoCard.axaml" />
         <StyleInclude Source="Controls/Inference/LtxvAdvancedOptionsCard.axaml" />
+        <StyleInclude Source="Controls/Inference/AnimaIpAdapterCard.axaml" />
         <StyleInclude Source="Controls/Inference/SharpenCard.axaml" />
         <StyleInclude Source="Controls/Inference/FreeUCard.axaml" />
         <StyleInclude Source="Controls/Inference/ControlNetCard.axaml" />

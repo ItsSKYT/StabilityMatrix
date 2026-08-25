@@ -80,7 +80,11 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
         {
             if (isImgToVid)
             {
-                var (stageW, stageH) = LtxvComfyPipeline.Stage1Size(Width, Height, true);
+                var (stageW, stageH) = LtxvComfyPipeline.Stage1Size(
+                    Width,
+                    Height,
+                    LtxvComfyPipeline.UseHalfResStage1(true, AdvancedOptions)
+                );
                 latent = e
                     .Nodes.AddTypedNode(
                         new ComfyNodeBuilder.EmptyLTXVLatentVideo

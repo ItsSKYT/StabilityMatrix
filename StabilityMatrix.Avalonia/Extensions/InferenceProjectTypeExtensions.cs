@@ -22,6 +22,7 @@ public static class InferenceProjectTypeExtensions
             InferenceProjectType.Flux2KleinImageEdit => typeof(InferenceFlux2KleinImageEditViewModel),
             InferenceProjectType.ImagePrompt => typeof(InferenceImagePromptViewModel),
             InferenceProjectType.Krea2ImageEdit => typeof(InferenceKrea2ImageEditViewModel),
+            InferenceProjectType.AnimaImageEdit => typeof(InferenceAnimaImageEditViewModel),
             InferenceProjectType.LtxvTextToVideo => typeof(InferenceLtxvTextToVideoViewModel),
             InferenceProjectType.LtxvImageToVideo => typeof(InferenceLtxvImageToVideoViewModel),
             InferenceProjectType.LtxvAudioToVideo => typeof(InferenceLtxvAudioToVideoViewModel),

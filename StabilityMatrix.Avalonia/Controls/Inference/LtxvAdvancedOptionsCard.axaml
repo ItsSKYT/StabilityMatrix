@@ -34,7 +34,7 @@
                         <CheckBox
                             Content="Two-stage spatial upscale"
                             IsChecked="{Binding EnableTwoStage}"
-                            ToolTip.Tip="2.3: low-res + upscaler + distilled LoRA. 2.5: always on (MMH3 workflow: CropGuides + ltx-2.3 spatial ×2 + 3-step ManualSigmas). UI resolution is final; stage 1 runs at half size." />
+                            ToolTip.Tip="Off: sample at the UI resolution with the sampler Steps. On: stage 1 at half size, then spatial ×2 and a second pass using Stage2 steps (2.3 also loads distilled LoRA; 2.5 uses CropGuides)." />
                         <StackPanel
                             Margin="16,0,0,0"
                             IsVisible="{Binding ShowTwoStageSettings}"

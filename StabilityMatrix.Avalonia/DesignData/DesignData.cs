@@ -1140,6 +1140,9 @@ The gallery images are often inpainted, but you will get something very similar 
     public static InferenceKrea2ImageEditViewModel InferenceKrea2ImageEditViewModel =>
         DialogFactory.Get<InferenceKrea2ImageEditViewModel>();
 
+    public static InferenceAnimaImageEditViewModel InferenceAnimaImageEditViewModel =>
+        DialogFactory.Get<InferenceAnimaImageEditViewModel>();
+
     public static InferenceLtxvTextToVideoViewModel InferenceLtxvTextToVideoViewModel =>
         DialogFactory.Get<InferenceLtxvTextToVideoViewModel>();
 

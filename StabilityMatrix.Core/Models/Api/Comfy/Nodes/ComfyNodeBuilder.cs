@@ -574,6 +574,34 @@ public class ComfyNodeBuilder
         public required string Crop { get; set; }
     }
 
+    [TypedNodeOptions(
+        Name = "AnimaIPAdapterLoader",
+        RequiredExtensions = ["https://github.com/LuciferTC9527/ComfyUI-Anima_IP-Adapter"]
+    )]
+    public record AnimaIPAdapterLoader : ComfyTypedNodeBase<AnimaIpAdapterNodeConnection>
+    {
+        public required string IpAdapterName { get; init; }
+        public bool AutoDownload { get; init; } = true;
+    }
+
+    [TypedNodeOptions(
+        Name = "AnimaIPAdapterApply",
+        RequiredExtensions = ["https://github.com/LuciferTC9527/ComfyUI-Anima_IP-Adapter"]
+    )]
+    public record AnimaIPAdapterApply : ComfyTypedNodeBase<ModelNodeConnection>
+    {
+        public required ModelNodeConnection Model { get; init; }
+        public required AnimaIpAdapterNodeConnection IpAdapter { get; init; }
+        public required ImageNodeConnection RefImage { get; init; }
+        public double Strength { get; init; } = 1.0;
+        public int RefImageSize { get; init; } = 512;
+        public int SiglipLayer { get; init; } = -1;
+        public double IpCfgScale { get; init; } = 4.0;
+        public bool IpCfgSeparate { get; init; }
+        public bool GrayNull { get; init; }
+        public bool UseLora { get; init; } = true;
+    }
+
     public record FluxGuidance : ComfyTypedNodeBase<ConditioningNodeConnection>
     {
         public required ConditioningNodeConnection Conditioning { get; init; }

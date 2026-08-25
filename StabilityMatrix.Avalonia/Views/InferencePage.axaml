@@ -114,6 +114,14 @@
                     </ui:CommandBarButton.IconSource>
                 </ui:CommandBarButton>
                 <ui:CommandBarButton
+                    Click="AddTabMenu_AnimaImageEdit_OnClick"
+                    Label="Anima Image Edit"
+                    ToolTip.Tip="Anima character from photo + IP-Adapter">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="ImageEdit" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
                     Click="AddTabMenu_Krea2ImageEdit_OnClick"
                     Label="Krea2 Image Edit"
                     ToolTip.Tip="Krea2 Image Edit">

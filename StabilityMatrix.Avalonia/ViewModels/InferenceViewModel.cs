@@ -732,6 +732,8 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
             InferenceProjectType.ImagePrompt => scope.ServiceManager.Get<InferenceImagePromptViewModel>(),
             InferenceProjectType.Krea2ImageEdit
                 => scope.ServiceManager.Get<InferenceKrea2ImageEditViewModel>(),
+            InferenceProjectType.AnimaImageEdit
+                => scope.ServiceManager.Get<InferenceAnimaImageEditViewModel>(),
             InferenceProjectType.LtxvTextToVideo
                 => scope.ServiceManager.Get<InferenceLtxvTextToVideoViewModel>(),
             InferenceProjectType.LtxvImageToVideo
@@ -785,6 +787,14 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
                 break;
             case InferenceKrea2ImageEditViewModel krea2ImageEditVm:
                 krea2ImageEditVm.SelectImageCardViewModel.ImageSource = new ImageSource(
+                    imageFile.AbsolutePath
+                );
+                break;
+            case InferenceAnimaImageEditViewModel animaImageEditVm:
+                animaImageEditVm.SelectImageCardViewModel.ImageSource = new ImageSource(
+                    imageFile.AbsolutePath
+                );
+                animaImageEditVm.FaceImageCardViewModel.ImageSource = new ImageSource(
                     imageFile.AbsolutePath
                 );
                 break;

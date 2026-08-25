@@ -5,6 +5,13 @@ All notable changes to Stability Matrix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html).
 
+## v2.16.2-skyt.3
+### Added
+- Inference **Anima Image Edit** tab (IP-Adapter scene + face)
+- LTX 2.5 **two-stage / spatial upscale** and other Advanced post steps are optional checkboxes (no longer forced on)
+### Changed
+- LTX 2.5 sampler **Steps** and Advanced **Stage2 steps** now control the graph instead of a fixed ManualSigmas schedule
+
 ## v2.16.2-skyt.2
 ### Added
 - Inference **generation queue**: add jobs while generating, browse the queue, reorder, edit prompts, and remove items; queued jobs run automatically after the current one finishes

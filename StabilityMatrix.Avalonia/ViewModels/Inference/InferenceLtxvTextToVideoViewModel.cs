@@ -144,7 +144,10 @@ public class InferenceLtxvTextToVideoViewModel : InferenceGenerationViewModelBas
         var (latentW, latentH) = LtxvComfyPipeline.Stage1Size(
             SamplerCardViewModel.Width,
             SamplerCardViewModel.Height,
-            ModelCardViewModel.IsLtx25
+            LtxvComfyPipeline.UseHalfResStage1(
+                ModelCardViewModel.IsLtx25,
+                AdvancedOptionsCardViewModel
+            )
         );
         builder.SetupEmptyLatentSource(
             latentW,

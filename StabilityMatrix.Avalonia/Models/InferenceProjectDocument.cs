@@ -41,6 +41,7 @@ public class InferenceProjectDocument : ICloneable
                 InferenceFlux2KleinImageEditViewModel => InferenceProjectType.Flux2KleinImageEdit,
                 InferenceImagePromptViewModel => InferenceProjectType.ImagePrompt,
                 InferenceKrea2ImageEditViewModel => InferenceProjectType.Krea2ImageEdit,
+                InferenceAnimaImageEditViewModel => InferenceProjectType.AnimaImageEdit,
                 InferenceLtxvImageToVideoViewModel => InferenceProjectType.LtxvImageToVideo,
                 InferenceLtxvAudioToVideoViewModel => InferenceProjectType.LtxvAudioToVideo,
                 InferenceLtxvTextToAudioViewModel => InferenceProjectType.LtxvTextToAudio,
