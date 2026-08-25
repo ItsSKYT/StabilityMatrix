@@ -99,10 +99,11 @@ public partial class LtxvAdvancedOptionsCardViewModel : LoadableViewModelBase
             return SpatialUpscalerName;
 
         return ClientManager
-            .Models.Concat(ClientManager.UnetModels)
+            .AllModels.Concat(ClientManager.UnetModels)
             .Select(m => m.RelativePath)
             .FirstOrDefault(p =>
-                p.Contains("spatial-upscaler", StringComparison.OrdinalIgnoreCase)
+                p.Contains("latent-spatial-upscaler", StringComparison.OrdinalIgnoreCase)
+                || p.Contains("spatial-upscaler", StringComparison.OrdinalIgnoreCase)
                 || p.Contains("spatial_upscaler", StringComparison.OrdinalIgnoreCase)
             );
     }

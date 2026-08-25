@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.Json.Nodes;
@@ -21,7 +22,7 @@ using StabilityMatrix.Core.Models.Api.Comfy.NodeTypes;
 namespace StabilityMatrix.Avalonia.ViewModels.Inference;
 
 /// <summary>
-/// Model card for LTXV 2.3 (transformer-only packs): Checkpoint/UNET + DualCLIP (Gemma + text projection) + VAE.
+/// Model card for LTX Video 2.3 / 2.5 transformer packs.
 /// </summary>
 [View(typeof(LtxvModelCard))]
 [ManagedService]
@@ -44,10 +45,25 @@ public partial class LtxvModelCardViewModel(
     private HybridModelFile? selectedVae;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLtx23))]
+    [NotifyPropertyChangedFor(nameof(IsLtx25))]
+    [NotifyPropertyChangedFor(nameof(ShowTextProjection))]
+    [NotifyPropertyChangedFor(nameof(ShowShift))]
+    private string selectedVersionLabel = "LTX 2.3";
+
+    [ObservableProperty]
     private double maxShift = 2.05d;
 
     [ObservableProperty]
     private double baseShift = 0.95d;
+
+    public IReadOnlyList<string> VersionOptions { get; } = ["LTX 2.3", "LTX 2.5"];
+
+    public bool IsLtx23 => !IsLtx25;
+    public bool IsLtx25 => SelectedVersionLabel.Contains("2.5", StringComparison.OrdinalIgnoreCase);
+    public bool ShowTextProjection => IsLtx23;
+    public bool ShowShift => IsLtx23;
+    public LtxvModelVersion SelectedVersion => IsLtx25 ? LtxvModelVersion.Ltx25 : LtxvModelVersion.Ltx23;
 
     public IInferenceClientManager ClientManager { get; } = clientManager;
 
@@ -62,8 +78,10 @@ public partial class LtxvModelCardViewModel(
         pickerVm.Title = "Select LTXV Checkpoint / UNET";
         pickerVm.Source = ModelPickerSource.CheckpointAndUnet;
 
-        if (await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
-            && pickerVm.SelectedModel is { } selected)
+        if (
+            await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
+            && pickerVm.SelectedModel is { } selected
+        )
         {
             SelectedModel = selected;
         }
@@ -77,8 +95,10 @@ public partial class LtxvModelCardViewModel(
         pickerVm.Title = "Select Gemma Text Encoder";
         pickerVm.Source = ModelPickerSource.Clip;
 
-        if (await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
-            && pickerVm.SelectedModel is { } selected)
+        if (
+            await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
+            && pickerVm.SelectedModel is { } selected
+        )
         {
             SelectedClipModel = selected;
         }
@@ -92,8 +112,10 @@ public partial class LtxvModelCardViewModel(
         pickerVm.Title = "Select LTX Text Projection";
         pickerVm.Source = ModelPickerSource.Clip;
 
-        if (await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
-            && pickerVm.SelectedModel is { } selected)
+        if (
+            await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
+            && pickerVm.SelectedModel is { } selected
+        )
         {
             SelectedTextProjection = selected;
         }
@@ -107,8 +129,10 @@ public partial class LtxvModelCardViewModel(
         pickerVm.Title = "Select LTX VAE (taeltx2_3 / LTX23_video_vae)";
         pickerVm.Source = ModelPickerSource.Vae;
 
-        if (await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
-            && pickerVm.SelectedModel is { } selected)
+        if (
+            await pickerVm.GetDialog().ShowAsync() == ContentDialogResult.Primary
+            && pickerVm.SelectedModel is { } selected
+        )
         {
             SelectedVae = selected;
         }
@@ -124,18 +148,20 @@ public partial class LtxvModelCardViewModel(
             return false;
         }
 
-        if (SelectedClipModel is null)
+        if (ResolveClip() is null)
         {
             await DialogHelper
                 .CreateMarkdownDialog(
-                    "Please select Gemma 3 12B text encoder (`gemma_3_12B_it_fp8_scaled`).",
+                    IsLtx25
+                        ? "Please select Gemma 4 12B with LTX 2.5 projection (`gemma4-12b-with-proj-ltx-2.5-...`)."
+                        : "Please select Gemma 3 12B text encoder (`gemma_3_12B_it_fp8_scaled`).",
                     "No Text Encoder Selected"
                 )
                 .ShowAsync();
             return false;
         }
 
-        if (ResolveTextProjection() is null)
+        if (IsLtx23 && ResolveTextProjection() is null)
         {
             await DialogHelper
                 .CreateMarkdownDialog(
@@ -150,7 +176,9 @@ public partial class LtxvModelCardViewModel(
         {
             await DialogHelper
                 .CreateMarkdownDialog(
-                    "Please select LTX VAE (`taeltx2_3.safetensors` or `LTX23_video_vae_bf16.safetensors`).",
+                    IsLtx25
+                        ? "Please select LTX 2.5 video VAE (`ltx-2.5-video-vae-bf16.safetensors`)."
+                        : "Please select LTX VAE (`taeltx2_3.safetensors` or `LTX23_video_vae_bf16.safetensors`).",
                     "No VAE Selected"
                 )
                 .ShowAsync();
@@ -176,16 +204,12 @@ public partial class LtxvModelCardViewModel(
 
     public void ApplyStep(ModuleApplyStepEventArgs e)
     {
-        var modelPath =
-            SelectedModel?.RelativePath ?? throw new ValidationException("Model not selected");
+        var modelPath = SelectedModel?.RelativePath ?? throw new ValidationException("Model not selected");
         var textEncoder =
-            SelectedClipModel?.RelativePath
-            ?? throw new ValidationException("No Gemma text encoder selected");
-        var textProjection =
-            ResolveTextProjection()?.RelativePath
-            ?? throw new ValidationException("No LTX text projection selected");
-        var vaePath =
-            ResolveVae()?.RelativePath ?? throw new ValidationException("No LTX VAE selected");
+            ResolveClip()?.RelativePath ?? throw new ValidationException("No Gemma text encoder selected");
+        var vaePath = ResolveVae()?.RelativePath ?? throw new ValidationException("No LTX VAE selected");
+
+        e.Builder.Connections.UseLtx25 = IsLtx25;
 
         ModelNodeConnection loadedModel;
         if (
@@ -236,25 +260,53 @@ public partial class LtxvModelCardViewModel(
                 .Output1;
         }
 
-        var clip = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.DualCLIPLoader
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.DualCLIPLoader)),
-                ClipName1 = textEncoder,
-                ClipName2 = textProjection,
-                Type = "ltxv",
-            }
-        );
+        ClipNodeConnection clip;
+        ModelNodeConnection sampledModel = loadedModel;
 
-        var model = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.ModelSamplingLTXV
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.ModelSamplingLTXV)),
-                Model = loadedModel,
-                MaxShift = MaxShift,
-                BaseShift = BaseShift,
-            }
-        );
+        if (IsLtx25)
+        {
+            clip = e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.CLIPLoader
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CLIPLoader)),
+                        ClipName = textEncoder,
+                        Type = "ltxv",
+                        Device = "default",
+                    }
+                )
+                .Output;
+        }
+        else
+        {
+            var textProjection =
+                ResolveTextProjection()?.RelativePath
+                ?? throw new ValidationException("No LTX text projection selected");
+
+            clip = e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.DualCLIPLoader
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.DualCLIPLoader)),
+                        ClipName1 = textEncoder,
+                        ClipName2 = textProjection,
+                        Type = "ltxv",
+                    }
+                )
+                .Output;
+
+            sampledModel = e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.ModelSamplingLTXV
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.ModelSamplingLTXV)),
+                        Model = loadedModel,
+                        MaxShift = MaxShift,
+                        BaseShift = BaseShift,
+                    }
+                )
+                .Output;
+        }
 
         var vae = e.Nodes.AddTypedNode(
             new ComfyNodeBuilder.VAELoader
@@ -264,8 +316,8 @@ public partial class LtxvModelCardViewModel(
             }
         );
 
-        e.Builder.Connections.Base.Model = model.Output;
-        e.Builder.Connections.Base.Clip = clip.Output;
+        e.Builder.Connections.Base.Model = sampledModel;
+        e.Builder.Connections.Base.Clip = clip;
         e.Builder.Connections.Base.VAE = vae.Output;
         e.Builder.Connections.PrimaryVAE = vae.Output;
 
@@ -278,21 +330,41 @@ public partial class LtxvModelCardViewModel(
 
         if (e.Builder.Connections.UseLtxNativeAudio)
         {
-            var audioVaeName =
-                ResolveAudioVaeCkptName(modelPath)
-                ?? throw new ValidationException(
-                    "LTX native audio needs LTX23_audio_vae_bf16.safetensors in Checkpoints "
-                        + "(ComfyUI LTXVAudioVAELoader), or a full LTX checkpoint."
-                );
+            if (IsLtx25)
+            {
+                var audioVaeName =
+                    ResolveAudioVae25()
+                    ?? throw new ValidationException(
+                        "LTX 2.5 native audio needs ltx-2.5-audio-vae-bf16.safetensors in VAE."
+                    );
 
-            var audioVae = e.Nodes.AddTypedNode(
-                new ComfyNodeBuilder.LTXVAudioVAELoader
-                {
-                    Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVAudioVAELoader)),
-                    CkptName = audioVaeName,
-                }
-            );
-            e.Builder.Connections.LtxAudioVae = audioVae.Output;
+                var audioVae = e.Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.VAELoader
+                    {
+                        Name = e.Nodes.GetUniqueName("LTX25_AudioVAE"),
+                        VaeName = audioVaeName,
+                    }
+                );
+                e.Builder.Connections.LtxAudioVae = audioVae.Output;
+            }
+            else
+            {
+                var audioVaeName =
+                    ResolveAudioVaeCkptName(modelPath)
+                    ?? throw new ValidationException(
+                        "LTX native audio needs LTX23_audio_vae_bf16.safetensors in Checkpoints "
+                            + "(ComfyUI LTXVAudioVAELoader), or a full LTX checkpoint."
+                    );
+
+                var audioVae = e.Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.LTXVAudioVAELoader
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.LTXVAudioVAELoader)),
+                        CkptName = audioVaeName,
+                    }
+                );
+                e.Builder.Connections.LtxAudioVae = audioVae.Output;
+            }
         }
 
         if (ExtraNetworksStackCardViewModel.Cards.OfType<LoraModule>().Any(x => x.IsEnabled))
@@ -331,6 +403,47 @@ public partial class LtxvModelCardViewModel(
         return null;
     }
 
+    private string? ResolveAudioVae25()
+    {
+        static bool Is25AudioVae(string name) =>
+            name.Contains("audio", StringComparison.OrdinalIgnoreCase)
+            && name.Contains("vae", StringComparison.OrdinalIgnoreCase)
+            && (
+                name.Contains("2.5", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("2_5", StringComparison.OrdinalIgnoreCase)
+            );
+
+        return ClientManager.VaeModels.FirstOrDefault(m => Is25AudioVae(m.FileName))?.RelativePath
+            ?? ClientManager
+                .VaeModels.FirstOrDefault(m =>
+                    m.FileName.Contains("audio_vae", StringComparison.OrdinalIgnoreCase)
+                )
+                ?.RelativePath;
+    }
+
+    private HybridModelFile? ResolveClip()
+    {
+        if (SelectedClipModel is { } selected)
+            return selected;
+
+        if (IsLtx25)
+        {
+            return ClientManager.ClipModels.FirstOrDefault(m =>
+                    m.FileName.Contains("gemma4", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("2.5", StringComparison.OrdinalIgnoreCase)
+                )
+                ?? ClientManager.ClipModels.FirstOrDefault(m =>
+                    m.FileName.Contains("gemma4", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("proj", StringComparison.OrdinalIgnoreCase)
+                );
+        }
+
+        return ClientManager.ClipModels.FirstOrDefault(m =>
+            m.FileName.Contains("gemma_3", StringComparison.OrdinalIgnoreCase)
+            || m.FileName.Contains("gemma3", StringComparison.OrdinalIgnoreCase)
+        );
+    }
+
     private HybridModelFile? ResolveTextProjection()
     {
         if (SelectedTextProjection is { } selected)
@@ -346,6 +459,18 @@ public partial class LtxvModelCardViewModel(
     {
         if (SelectedVae is { } selected)
             return selected;
+
+        if (IsLtx25)
+        {
+            return ClientManager.VaeModels.FirstOrDefault(m =>
+                    m.FileName.Contains("2.5", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("video", StringComparison.OrdinalIgnoreCase)
+                    && m.FileName.Contains("vae", StringComparison.OrdinalIgnoreCase)
+                )
+                ?? ClientManager.VaeModels.FirstOrDefault(m =>
+                    m.FileName.Contains("ltx-2.5-video-vae", StringComparison.OrdinalIgnoreCase)
+                );
+        }
 
         return ClientManager.VaeModels.FirstOrDefault(m =>
                 m.FileName.Contains("taeltx2_3", StringComparison.OrdinalIgnoreCase)

@@ -462,18 +462,14 @@ public class ComfyNodeBuilder
         public required string Codec { get; init; }
     }
 
-    [TypedNodeOptions(
-        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
-    )]
+    [TypedNodeOptions(RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"])]
     public record MMAudioModelLoader : ComfyTypedNodeBase<MMAudioModelNodeConnection>
     {
         public required string MmaudioModel { get; init; }
         public string BasePrecision { get; init; } = "fp16";
     }
 
-    [TypedNodeOptions(
-        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
-    )]
+    [TypedNodeOptions(RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"])]
     public record MMAudioFeatureUtilsLoader : ComfyTypedNodeBase<MMAudioFeatureUtilsNodeConnection>
     {
         public required string VaeModel { get; init; }
@@ -483,9 +479,7 @@ public class ComfyNodeBuilder
         public string Precision { get; init; } = "fp16";
     }
 
-    [TypedNodeOptions(
-        RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"]
-    )]
+    [TypedNodeOptions(RequiredExtensions = ["https://github.com/kijai/ComfyUI-MMAudio"])]
     public record MMAudioSampler : ComfyTypedNodeBase<AudioNodeConnection>
     {
         public required MMAudioModelNodeConnection MmaudioModel { get; init; }
@@ -531,9 +525,11 @@ public class ComfyNodeBuilder
         public required string ClipName { get; init; }
 
         /// <summary>
-        /// possible values: "stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi"
+        /// possible values: "stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi", "ltxv"
         /// </summary>
         public required string Type { get; init; }
+
+        public string? Device { get; init; }
     }
 
     public record DualCLIPLoader : ComfyTypedNodeBase<ClipNodeConnection>
@@ -766,11 +762,7 @@ public class ComfyNodeBuilder
     }
 
     public record LTXVImgToVideo
-        : ComfyTypedNodeBase<
-            ConditioningNodeConnection,
-            ConditioningNodeConnection,
-            LatentNodeConnection
-        >
+        : ComfyTypedNodeBase<ConditioningNodeConnection, ConditioningNodeConnection, LatentNodeConnection>
     {
         public required ConditioningNodeConnection Positive { get; init; }
         public required ConditioningNodeConnection Negative { get; init; }
@@ -855,6 +847,24 @@ public class ComfyNodeBuilder
         public required string CkptName { get; init; }
     }
 
+    public record LTXVDualCFGGuider : ComfyTypedNodeBase<GuiderNodeConnection>
+    {
+        public required ModelNodeConnection Model { get; init; }
+        public required ConditioningNodeConnection Positive { get; init; }
+        public required ConditioningNodeConnection Negative { get; init; }
+
+        [Range(0.0d, 100.0d)]
+        public double VideoCfg { get; init; } = 1.0;
+
+        [Range(0.0d, 100.0d)]
+        public double AudioCfg { get; init; } = 1.0;
+    }
+
+    public record ManualSigmas : ComfyTypedNodeBase<SigmasNodeConnection>
+    {
+        public required string Sigmas { get; init; }
+    }
+
     public record LTXVEmptyLatentAudio : ComfyTypedNodeBase<LatentNodeConnection>
     {
         [Range(1, int.MaxValue)]
@@ -875,8 +885,7 @@ public class ComfyNodeBuilder
         public required LatentNodeConnection AudioLatent { get; init; }
     }
 
-    public record LTXVSeparateAVLatent
-        : ComfyTypedNodeBase<LatentNodeConnection, LatentNodeConnection>
+    public record LTXVSeparateAVLatent : ComfyTypedNodeBase<LatentNodeConnection, LatentNodeConnection>
     {
         public required LatentNodeConnection AvLatent { get; init; }
     }
@@ -894,11 +903,7 @@ public class ComfyNodeBuilder
     }
 
     public record LTXVReferenceAudio
-        : ComfyTypedNodeBase<
-            ModelNodeConnection,
-            ConditioningNodeConnection,
-            ConditioningNodeConnection
-        >
+        : ComfyTypedNodeBase<ModelNodeConnection, ConditioningNodeConnection, ConditioningNodeConnection>
     {
         public required ModelNodeConnection Model { get; init; }
         public required ConditioningNodeConnection Positive { get; init; }
@@ -917,11 +922,7 @@ public class ComfyNodeBuilder
     }
 
     public record LTXVAddGuide
-        : ComfyTypedNodeBase<
-            ConditioningNodeConnection,
-            ConditioningNodeConnection,
-            LatentNodeConnection
-        >
+        : ComfyTypedNodeBase<ConditioningNodeConnection, ConditioningNodeConnection, LatentNodeConnection>
     {
         public required ConditioningNodeConnection Positive { get; init; }
         public required ConditioningNodeConnection Negative { get; init; }
@@ -939,11 +940,7 @@ public class ComfyNodeBuilder
     }
 
     public record LTXVCropGuides
-        : ComfyTypedNodeBase<
-            ConditioningNodeConnection,
-            ConditioningNodeConnection,
-            LatentNodeConnection
-        >
+        : ComfyTypedNodeBase<ConditioningNodeConnection, ConditioningNodeConnection, LatentNodeConnection>
     {
         public required ConditioningNodeConnection Positive { get; init; }
         public required ConditioningNodeConnection Negative { get; init; }
@@ -1171,6 +1168,65 @@ public class ComfyNodeBuilder
     public record UnetLoaderGGUF : ComfyTypedNodeBase<ModelNodeConnection>
     {
         public required string UnetName { get; init; }
+    }
+
+    // The GGUF CLIP loaders below can also load .safetensors encoders, so a mixed
+    // gguf + safetensors selection can be routed entirely through the GGUF variant
+
+    [TypedNodeOptions(
+        Name = "CLIPLoaderGGUF",
+        RequiredExtensions = ["https://github.com/city96/ComfyUI-GGUF"]
+    )]
+    public record CLIPLoaderGGUF : ComfyTypedNodeBase<ClipNodeConnection>
+    {
+        public required string ClipName { get; init; }
+
+        /// <summary>
+        /// Same values as <see cref="CLIPLoader"/>
+        /// </summary>
+        public required string Type { get; init; }
+    }
+
+    [TypedNodeOptions(
+        Name = "DualCLIPLoaderGGUF",
+        RequiredExtensions = ["https://github.com/city96/ComfyUI-GGUF"]
+    )]
+    public record DualCLIPLoaderGGUF : ComfyTypedNodeBase<ClipNodeConnection>
+    {
+        public required string ClipName1 { get; init; }
+        public required string ClipName2 { get; init; }
+
+        /// <summary>
+        /// Same values as <see cref="DualCLIPLoader"/>
+        /// </summary>
+        public required string Type { get; init; }
+    }
+
+    [TypedNodeOptions(
+        Name = "TripleCLIPLoaderGGUF",
+        RequiredExtensions = ["https://github.com/city96/ComfyUI-GGUF"]
+    )]
+    public record TripleCLIPLoaderGGUF : ComfyTypedNodeBase<ClipNodeConnection>
+    {
+        public required string ClipName1 { get; init; }
+        public required string ClipName2 { get; init; }
+        public required string ClipName3 { get; init; }
+
+        // no type input, like TripleCLIPLoader
+    }
+
+    [TypedNodeOptions(
+        Name = "QuadrupleCLIPLoaderGGUF",
+        RequiredExtensions = ["https://github.com/city96/ComfyUI-GGUF"]
+    )]
+    public record QuadrupleCLIPLoaderGGUF : ComfyTypedNodeBase<ClipNodeConnection>
+    {
+        public required string ClipName1 { get; init; }
+        public required string ClipName2 { get; init; }
+        public required string ClipName3 { get; init; }
+        public required string ClipName4 { get; init; }
+
+        // no type input, like QuadrupleCLIPLoader
     }
 
     [TypedNodeOptions(
@@ -2239,6 +2295,9 @@ public class ComfyNodeBuilder
 
         /// <summary>Selected UNET/ckpt looks like INT4 ConvRot (set by LTX model card).</summary>
         public bool LikelyConvRotInt4 { get; set; }
+
+        /// <summary>LTX 2.5 official ComfyUI graph (CLIPLoader + ManualSigmas + DualCFG + spatial ×2).</summary>
+        public bool UseLtx25 { get; set; }
 
         /// <summary>Audio VAE for LTX native decode (set by model card / sampler).</summary>
         public VAENodeConnection? LtxAudioVae { get; set; }

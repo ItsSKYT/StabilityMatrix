@@ -208,18 +208,33 @@ public partial class WanModelCardViewModel(
 
         e.Builder.Connections.Base.Model = modelSamplingSd3.Output;
 
-        var clipLoader = e.Nodes.AddTypedNode(
-            new ComfyNodeBuilder.CLIPLoader
-            {
-                Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CLIPLoader)),
-                ClipName =
-                    SelectedClipModel?.RelativePath
-                    ?? throw new ValidationException("No Clip Model Selected"),
-                Type = "wan",
-            }
-        );
+        var clipName =
+            SelectedClipModel?.RelativePath ?? throw new ValidationException("No Clip Model Selected");
 
-        e.Builder.Connections.Base.Clip = clipLoader.Output;
+        // The GGUF loader variant can also load .safetensors encoders
+        var clipOutput = SelectedClipModel is { IsGguf: true }
+            ? e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.CLIPLoaderGGUF
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CLIPLoaderGGUF)),
+                        ClipName = clipName,
+                        Type = "wan",
+                    }
+                )
+                .Output
+            : e
+                .Nodes.AddTypedNode(
+                    new ComfyNodeBuilder.CLIPLoader
+                    {
+                        Name = e.Nodes.GetUniqueName(nameof(ComfyNodeBuilder.CLIPLoader)),
+                        ClipName = clipName,
+                        Type = "wan",
+                    }
+                )
+                .Output;
+
+        e.Builder.Connections.Base.Clip = clipOutput;
 
         var vaeLoader = e.Nodes.AddTypedNode(
             new ComfyNodeBuilder.VAELoader
@@ -263,14 +278,12 @@ public partial class WanModelCardViewModel(
     {
         if (SelectedModel is { } selectedModel)
         {
-            SelectedModel =
-                FindLocalModel(ClientManager.UnetModels, selectedModel) ?? selectedModel;
+            SelectedModel = FindLocalModel(ClientManager.UnetModels, selectedModel) ?? selectedModel;
         }
 
         if (SelectedClipModel is { } selectedClip)
         {
-            SelectedClipModel =
-                FindLocalModel(ClientManager.ClipModels, selectedClip) ?? selectedClip;
+            SelectedClipModel = FindLocalModel(ClientManager.ClipModels, selectedClip) ?? selectedClip;
         }
 
         if (SelectedVae is { } selectedVae)
@@ -281,8 +294,7 @@ public partial class WanModelCardViewModel(
         if (SelectedClipVisionModel is { } selectedClipVision)
         {
             SelectedClipVisionModel =
-                FindLocalModel(ClientManager.ClipVisionModels, selectedClipVision)
-                ?? selectedClipVision;
+                FindLocalModel(ClientManager.ClipVisionModels, selectedClipVision) ?? selectedClipVision;
         }
     }
 
@@ -296,11 +308,7 @@ public partial class WanModelCardViewModel(
 
         return models.FirstOrDefault(m =>
                 relativePath is not null
-                && string.Equals(
-                    m.Local?.RelativePath,
-                    relativePath,
-                    StringComparison.OrdinalIgnoreCase
-                )
+                && string.Equals(m.Local?.RelativePath, relativePath, StringComparison.OrdinalIgnoreCase)
             )
             ?? models.FirstOrDefault(m =>
                 !string.IsNullOrEmpty(fileName)

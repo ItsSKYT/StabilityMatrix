@@ -314,7 +314,8 @@ public partial class OutputsPageViewModel : PageViewModelBase
                     image.PlaybackFile = new FilePath(preview);
                 }
 
-                var thumb = videoThumbnailService.GetExistingThumbnailPath(item.ImageFile.AbsolutePath)
+                var thumb =
+                    videoThumbnailService.GetExistingThumbnailPath(item.ImageFile.AbsolutePath)
                     ?? await videoThumbnailService.GetOrCreateThumbnailAsync(item.ImageFile.AbsolutePath);
                 if (thumb is not null && File.Exists(thumb))
                 {
@@ -364,17 +365,15 @@ public partial class OutputsPageViewModel : PageViewModelBase
 
                             if (newImage.ImageFile.IsVideo)
                             {
-                                var preview =
-                                    await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(
-                                        newImage.ImageFile.AbsolutePath
-                                    );
+                                var preview = await videoThumbnailService.GetOrCreateAnimatedPreviewAsync(
+                                    newImage.ImageFile.AbsolutePath
+                                );
                                 if (preview is not null)
                                     newImageSource.PlaybackFile = new FilePath(preview);
 
-                                newImageSource.HasAudio =
-                                    await videoThumbnailService.HasAudioStreamAsync(
-                                        newImage.ImageFile.AbsolutePath
-                                    );
+                                newImageSource.HasAudio = await videoThumbnailService.HasAudioStreamAsync(
+                                    newImage.ImageFile.AbsolutePath
+                                );
                             }
                             else
                             {
@@ -867,9 +866,22 @@ public partial class OutputsPageViewModel : PageViewModelBase
 
             var category = new TreeViewDirectory { Name = dirName, Path = dir };
 
-            if (Directory.GetDirectories(dir, "*", EnumerationOptionConstants.TopLevelOnly).Length > 0)
+            try
             {
-                category.SubDirectories = GetSubfolders(dir);
+                if (Directory.GetDirectories(dir, "*", EnumerationOptionConstants.TopLevelOnly).Length > 0)
+                {
+                    category.SubDirectories = GetSubfolders(dir);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Broken junction / symlink or inaccessible directory - skip it
+                logger.LogWarning(
+                    ex,
+                    "Skipping inaccessible directory {Dir} while building output tree",
+                    dir
+                );
+                continue;
             }
 
             subfolders.Add(category);

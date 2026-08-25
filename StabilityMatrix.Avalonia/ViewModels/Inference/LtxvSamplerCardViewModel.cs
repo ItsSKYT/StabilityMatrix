@@ -137,6 +137,7 @@ public class LtxvSamplerCardViewModel : SamplerCardViewModel
                 Advanced = AdvancedOptions,
                 ExtraGuideImage = ExtraGuideImage,
                 ExtraGuideFrameIdx = ExtraGuideFrameIdx,
+                UseLtx25 = e.Builder.Connections.UseLtx25,
             }
         );
 

@@ -281,10 +281,7 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
                 or InferenceWorkflowProfile.HiDream
         || (
             ResolvedWorkflowProfile is InferenceWorkflowProfile.Custom
-            && ModelCardViewModel.SelectedClipType
-                is not "stable_diffusion"
-                    and not "flux2"
-                    and not "krea2"
+            && ModelCardViewModel.SelectedClipType is not "stable_diffusion" and not "flux2" and not "krea2"
         );
 
     protected bool UsesFluxGuidanceSampler =>
@@ -434,7 +431,7 @@ public class InferenceTextToImageViewModel : InferenceGenerationViewModelBase, I
             }
         }
 
-        if (!await CheckClientConnectedWithPrompt() || !ClientManager.IsConnected)
+        if (!await CheckClientConnectedWithPrompt(cancellationToken) || !ClientManager.IsConnected)
             return;
 
         // If enabled, randomize the seed
