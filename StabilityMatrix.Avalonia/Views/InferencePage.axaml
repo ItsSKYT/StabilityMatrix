@@ -188,9 +188,41 @@
                 <ui:CommandBarButton
                     Click="AddTabMenu_LtxvHdr_OnClick"
                     Label="LTXV HDR IC-LoRA"
-                    ToolTip.Tip="HDR video-to-video (IC-LoRA in Extra Networks)">
+                    ToolTip.Tip="LTXV HDR IC-LoRA">
                     <ui:CommandBarButton.IconSource>
-                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="BrightnessHigh" />
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="Video" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_MiniMaxH3TextToImage_OnClick"
+                    Label="MiniMax H3 Text to Image"
+                    ToolTip.Tip="MiniMax H3 still (5-frame packet, first frame)">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="Image" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_MiniMaxH3TextToVideo_OnClick"
+                    Label="MiniMax H3 Text to Video"
+                    ToolTip.Tip="MiniMax H3 T2V with native stereo audio">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="Video" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_MiniMaxH3ImageToVideo_OnClick"
+                    Label="MiniMax H3 Image to Video"
+                    ToolTip.Tip="MiniMax H3 I2V (first frame)">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="VideoAdd" />
+                    </ui:CommandBarButton.IconSource>
+                </ui:CommandBarButton>
+                <ui:CommandBarButton
+                    Click="AddTabMenu_MiniMaxH3VideoToVideo_OnClick"
+                    Label="MiniMax H3 Video to Video"
+                    ToolTip.Tip="MiniMax H3 Ref2VA from a reference video">
+                    <ui:CommandBarButton.IconSource>
+                        <fluentIcons:SymbolIconSource FontSize="10" Symbol="FilmstripPlay" />
                     </ui:CommandBarButton.IconSource>
                 </ui:CommandBarButton>
                 <ui:CommandBarButton

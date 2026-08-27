@@ -136,4 +136,24 @@ public partial class InferencePage : UserControlBase
     {
         (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.LtxvHdrIcLora);
     }
+
+    private void AddTabMenu_MiniMaxH3TextToImage_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.MiniMaxH3TextToImage);
+    }
+
+    private void AddTabMenu_MiniMaxH3TextToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.MiniMaxH3TextToVideo);
+    }
+
+    private void AddTabMenu_MiniMaxH3ImageToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.MiniMaxH3ImageToVideo);
+    }
+
+    private void AddTabMenu_MiniMaxH3VideoToVideo_OnClick(object? sender, RoutedEventArgs e)
+    {
+        (DataContext as InferenceViewModel)!.AddTabCommand.Execute(InferenceProjectType.MiniMaxH3VideoToVideo);
+    }
 }

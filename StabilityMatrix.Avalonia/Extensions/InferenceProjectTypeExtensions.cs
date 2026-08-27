@@ -31,6 +31,10 @@ public static class InferenceProjectTypeExtensions
             InferenceProjectType.LtxvVideoRetake => typeof(InferenceLtxvVideoRetakeViewModel),
             InferenceProjectType.LtxvLipDub => typeof(InferenceLtxvLipDubViewModel),
             InferenceProjectType.LtxvHdrIcLora => typeof(InferenceLtxvHdrIcLoraViewModel),
+            InferenceProjectType.MiniMaxH3TextToImage => typeof(InferenceMiniMaxH3TextToImageViewModel),
+            InferenceProjectType.MiniMaxH3TextToVideo => typeof(InferenceMiniMaxH3TextToVideoViewModel),
+            InferenceProjectType.MiniMaxH3ImageToVideo => typeof(InferenceMiniMaxH3ImageToVideoViewModel),
+            InferenceProjectType.MiniMaxH3VideoToVideo => typeof(InferenceMiniMaxH3VideoToVideoViewModel),
             InferenceProjectType.Unknown => null,
             _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
         };

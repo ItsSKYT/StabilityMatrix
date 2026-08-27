@@ -1167,6 +1167,18 @@ The gallery images are often inpainted, but you will get something very similar 
     public static InferenceLtxvHdrIcLoraViewModel InferenceLtxvHdrIcLoraViewModel =>
         DialogFactory.Get<InferenceLtxvHdrIcLoraViewModel>();
 
+    public static InferenceMiniMaxH3TextToImageViewModel InferenceMiniMaxH3TextToImageViewModel =>
+        DialogFactory.Get<InferenceMiniMaxH3TextToImageViewModel>();
+
+    public static InferenceMiniMaxH3TextToVideoViewModel InferenceMiniMaxH3TextToVideoViewModel =>
+        DialogFactory.Get<InferenceMiniMaxH3TextToVideoViewModel>();
+
+    public static InferenceMiniMaxH3ImageToVideoViewModel InferenceMiniMaxH3ImageToVideoViewModel =>
+        DialogFactory.Get<InferenceMiniMaxH3ImageToVideoViewModel>();
+
+    public static InferenceMiniMaxH3VideoToVideoViewModel InferenceMiniMaxH3VideoToVideoViewModel =>
+        DialogFactory.Get<InferenceMiniMaxH3VideoToVideoViewModel>();
+
     public static PackageImportViewModel PackageImportViewModel =>
         DialogFactory.Get<PackageImportViewModel>();
 

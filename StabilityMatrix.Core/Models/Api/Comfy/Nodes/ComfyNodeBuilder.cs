@@ -452,6 +452,52 @@ public class ComfyNodeBuilder
     {
         public required ImageNodeConnection Images { get; init; }
         public required double Fps { get; init; }
+        public AudioNodeConnection? Audio { get; init; }
+    }
+
+    public record VAEDecodeAudio : ComfyTypedNodeBase<AudioNodeConnection>
+    {
+        public required LatentNodeConnection Samples { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+    }
+
+    public record ImageFromBatch : ComfyTypedNodeBase<ImageNodeConnection>
+    {
+        public required ImageNodeConnection Image { get; init; }
+        public int BatchIndex { get; init; }
+        public int Length { get; init; } = 1;
+    }
+
+    /// <summary>T2V / I2V (FL2VA). Omit first/last frame for text-only.</summary>
+    public record MiniMaxH3ImageToVideo
+        : ComfyTypedNodeBase<ConditioningNodeConnection, LatentNodeConnection>
+    {
+        public required ClipNodeConnection Clip { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+        public required string Prompt { get; init; }
+        public required int Width { get; init; }
+        public required int Height { get; init; }
+        public required int Length { get; init; }
+        public ImageNodeConnection? FirstFrame { get; init; }
+        public ImageNodeConnection? LastFrame { get; init; }
+    }
+
+    /// <summary>R2V / V2V (Ref2VA). ref_videos are IMAGE frame batches.</summary>
+    public record MiniMaxH3ReferenceToVideo
+        : ComfyTypedNodeBase<ConditioningNodeConnection, LatentNodeConnection>
+    {
+        public required ClipNodeConnection Clip { get; init; }
+        public required VAENodeConnection Vae { get; init; }
+        public required VAENodeConnection AudioVae { get; init; }
+        public required string Prompt { get; init; }
+        public required int Width { get; init; }
+        public required int Height { get; init; }
+        public required int Length { get; init; }
+        public string RefImageSize { get; init; } = "match";
+        public ImageNodeConnection? RefImages { get; init; }
+        public ImageNodeConnection? RefVideos { get; init; }
+        public AudioNodeConnection? RefVideoAudios { get; init; }
+        public AudioNodeConnection? RefAudios { get; init; }
     }
 
     public record SaveVideo : ComfyTypedNodeBase

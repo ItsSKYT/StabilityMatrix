@@ -749,6 +749,14 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
             InferenceProjectType.LtxvLipDub => scope.ServiceManager.Get<InferenceLtxvLipDubViewModel>(),
             InferenceProjectType.LtxvHdrIcLora
                 => scope.ServiceManager.Get<InferenceLtxvHdrIcLoraViewModel>(),
+            InferenceProjectType.MiniMaxH3TextToImage
+                => scope.ServiceManager.Get<InferenceMiniMaxH3TextToImageViewModel>(),
+            InferenceProjectType.MiniMaxH3TextToVideo
+                => scope.ServiceManager.Get<InferenceMiniMaxH3TextToVideoViewModel>(),
+            InferenceProjectType.MiniMaxH3ImageToVideo
+                => scope.ServiceManager.Get<InferenceMiniMaxH3ImageToVideoViewModel>(),
+            InferenceProjectType.MiniMaxH3VideoToVideo
+                => scope.ServiceManager.Get<InferenceMiniMaxH3VideoToVideoViewModel>(),
             _ => throw new InvalidOperationException($"Unsupported project type: {projectType}"),
         };
 
@@ -802,6 +810,9 @@ public partial class InferenceViewModel : PageViewModelBase, IAsyncDisposable
                 ltxvImgToVidVm.SelectImageCardViewModel.ImageSource = new ImageSource(
                     imageFile.AbsolutePath
                 );
+                break;
+            case InferenceMiniMaxH3ImageToVideoViewModel h3ImgToVidVm:
+                h3ImgToVidVm.SelectImageCardViewModel.ImageSource = new ImageSource(imageFile.AbsolutePath);
                 break;
         }
 

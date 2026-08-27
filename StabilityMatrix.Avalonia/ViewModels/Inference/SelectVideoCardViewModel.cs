@@ -81,7 +81,7 @@ public partial class SelectVideoCardViewModel : LoadableViewModelBase, IComfySte
             return;
 
         var dest = GetComfyRelativePath()!;
-        e.AddFileTransfer(LocalFile.FullPath, dest);
+        e.AddFileTransfer(LocalFile.FullPath, Path.Combine("input", dest));
     }
 
     public VideoNodeConnection? LoadVideoNode(ModuleApplyStepEventArgs e)

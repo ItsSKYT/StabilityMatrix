@@ -24,4 +24,8 @@ public enum InferenceProjectType
     LtxvVideoRetake,
     LtxvLipDub,
     LtxvHdrIcLora,
+    MiniMaxH3TextToImage,
+    MiniMaxH3TextToVideo,
+    MiniMaxH3ImageToVideo,
+    MiniMaxH3VideoToVideo,
 }
