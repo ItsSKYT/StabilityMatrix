@@ -1363,7 +1363,7 @@ public abstract partial class InferenceGenerationViewModelBase
     /// resume automatically once the backend is ready. Stops waiting early if ComfyUI is
     /// shut down or crashes before connecting (it is removed from RunningPackages either way).
     /// </summary>
-    private async Task<bool> WaitForConnectedAsync(CancellationToken cancellationToken)
+    protected async Task<bool> WaitForConnectedAsync(CancellationToken cancellationToken)
     {
         if (ClientManager.IsConnected)
             return true;

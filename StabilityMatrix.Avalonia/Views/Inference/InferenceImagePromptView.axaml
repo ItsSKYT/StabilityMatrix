@@ -10,6 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:mocks="clr-namespace:StabilityMatrix.Avalonia.DesignData"
     xmlns:modelsInference="clr-namespace:StabilityMatrix.Avalonia.Models.Inference"
+    xmlns:pg="clr-namespace:StabilityMatrix.Core.Models.PromptGenerator;assembly=StabilityMatrix.Core"
     xmlns:ui="using:FluentAvalonia.UI.Controls"
     d:DataContext="{x:Static mocks:DesignData.InferenceImagePromptViewModel}"
     d:DesignHeight="750"
@@ -53,6 +54,26 @@
                                 <StackPanel Margin="8" Spacing="12">
                                     <controls:Card Padding="12">
                                         <StackPanel Spacing="8">
+                                            <TextBlock FontWeight="SemiBold" Text="Model" />
+                                            <ComboBox
+                                                HorizontalAlignment="Stretch"
+                                                ItemsSource="{Binding GeneratorModels}"
+                                                SelectedItem="{Binding SelectedGeneratorModel}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="pg:PromptGeneratorModelDefinition">
+                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock
+                                                Opacity="0.7"
+                                                Text="{Binding SelectedGeneratorModel.Description}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </controls:Card>
+
+                                    <controls:Card Padding="12" IsVisible="{Binding IsFlorenceBackend}">
+                                        <StackPanel Spacing="8">
                                             <TextBlock FontWeight="SemiBold" Text="Format" />
                                             <ComboBox
                                                 HorizontalAlignment="Stretch"
@@ -65,19 +86,31 @@
                                         </StackPanel>
                                     </controls:Card>
 
-                                    <controls:Card Padding="12">
+                                    <controls:Card Padding="12" IsVisible="{Binding IsFlorenceBackend}">
                                         <StackPanel Spacing="8">
-                                            <TextBlock FontWeight="SemiBold" Text="Florence2 Model" />
+                                            <TextBlock FontWeight="SemiBold" Text="Florence2 checkpoint" />
                                             <ComboBox
                                                 HorizontalAlignment="Stretch"
-                                                ItemsSource="{x:Static inference:InferenceImagePromptViewModel.AvailableModels}"
-                                                SelectedItem="{Binding SelectedModel}" />
+                                                ItemsSource="{x:Static inference:InferenceImagePromptViewModel.AvailableFlorenceModels}"
+                                                SelectedItem="{Binding SelectedFlorenceModel}" />
                                             <TextBlock
                                                 Opacity="0.7"
                                                 Text="PromptGen models work best for tags and captions. First run downloads the model into Comfy LLM folder."
                                                 TextWrapping="Wrap" />
                                         </StackPanel>
                                     </controls:Card>
+
+                                    <CheckBox Content="Append to .txt" IsChecked="{Binding AppendToTxt}" />
+                                    <CheckBox Content="Keep model in VRAM" IsChecked="{Binding KeepModelInVram}" />
+                                    <Button
+                                        HorizontalAlignment="Stretch"
+                                        Command="{Binding BrowseFolderCommand}"
+                                        Content="Caption folder…" />
+                                    <TextBlock
+                                        IsVisible="{Binding HasBatch}"
+                                        Opacity="0.75"
+                                        Text="{Binding BatchSummary}"
+                                        TextWrapping="Wrap" />
 
                                     <controls:SeedCard DataContext="{Binding SeedCardViewModel}" />
                                 </StackPanel>

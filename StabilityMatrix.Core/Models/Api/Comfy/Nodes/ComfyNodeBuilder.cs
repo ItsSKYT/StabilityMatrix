@@ -1350,6 +1350,32 @@ public class ComfyNodeBuilder
         public ulong Seed { get; init; } = 1;
     }
 
+    [TypedNodeOptions(Name = "JC", RequiredExtensions = ["https://github.com/1038lab/ComfyUI-JoyCaption"])]
+    public record JoyCaption : ComfyTypedNodeBase<StringNodeConnection>
+    {
+        public required ImageNodeConnection Image { get; init; }
+        public required string Model { get; init; }
+        public string Quantization { get; init; } = "Maximum Savings (4-bit)";
+        public string PromptStyle { get; init; } = "Stable Diffusion Prompt";
+        public string CaptionLength { get; init; } = "long";
+        public string MemoryManagement { get; init; } = "Clear After Run";
+    }
+
+    [TypedNodeOptions(
+        Name = "AILab_QwenVL_GGUF",
+        RequiredExtensions = ["https://github.com/1038lab/ComfyUI-QwenVL"]
+    )]
+    public record QwenVlGguf : ComfyTypedNodeBase<StringNodeConnection>
+    {
+        public required string ModelName { get; init; }
+        public string PresetPrompt { get; init; } = "🖼️ Detailed Description";
+        public string CustomPrompt { get; init; } = "";
+        public int MaxTokens { get; init; } = 768;
+        public bool KeepModelLoaded { get; init; } = false;
+        public ulong Seed { get; init; } = 1;
+        public ImageNodeConnection? Image { get; init; }
+    }
+
     public record PreviewAny : ComfyTypedNodeBase
     {
         public required StringNodeConnection Source { get; init; }

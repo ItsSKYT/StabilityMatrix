@@ -108,7 +108,7 @@
                 <ui:CommandBarButton
                     Click="AddTabMenu_ImagePrompt_OnClick"
                     Label="Image Prompt"
-                    ToolTip.Tip="Generate prompt from image (Florence2)">
+                    ToolTip.Tip="Generate prompt from image (JoyCaption, Qwen2.5-VL, Florence2)">
                     <ui:CommandBarButton.IconSource>
                         <fluentIcons:SymbolIconSource FontSize="10" Symbol="DocumentText" />
                     </ui:CommandBarButton.IconSource>
